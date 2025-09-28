@@ -9,7 +9,7 @@ BATCH_SIZE = 15
 
 # --- Rule-Based Checks ---
 
-def apply_rule_based_checks(clauses: List[Dict[str, Any]]) -> (List[Dict[str, Any]], List[Dict[str, Any]]):
+def apply_rule_based_checks(clauses: List[Dict[str, Any]]) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Applies a set of simple, fast regex rules to catch common risks.
     Returns a tuple of (found_flags, remaining_clauses).
