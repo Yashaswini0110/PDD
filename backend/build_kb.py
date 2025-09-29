@@ -1,12 +1,12 @@
 import os
-import pickle
+import json
 from tqdm import tqdm
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
 
 # --- Configuration ---
 LEGAL_KB_DIR = "legal_kb"
-OUTPUT_FILE = "legal_kb.pkl"
+OUTPUT_FILE = "legal_kb.json"
 CHUNK_SIZE = 1000  # The size of each text chunk in characters
 CHUNK_OVERLAP = 100 # The overlap between consecutive chunks
 
@@ -99,9 +99,9 @@ def build_knowledge_base():
         "embeddings": embeddings
     }
     
-    # 4. Save to a pickle file
-    with open(OUTPUT_FILE, "wb") as f:
-        pickle.dump(knowledge_base, f)
+    # 4. Save to a JSON file
+    with open(OUTPUT_FILE, "w") as f:
+        json.dump(knowledge_base, f)
         
     print(f"\n--- Knowledge Base build complete! ---")
     print(f"Saved {len(chunks)} chunks and {len(embeddings)} embeddings to '{OUTPUT_FILE}'")

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import './App.css'
-import { uploadPdf, analyze, ask, exportReportUrl, deleteNow } from '@/lib/api'
+import { uploadPdf, analyze, ask, fetchReport, deleteNow } from '@/lib/api'
 
 // --- Type Definitions ---
 interface Flag {
@@ -148,17 +148,33 @@ function App() {
     }
   }
 
+  async function onExport(format: 'html' | 'pdf') {
+    if (!objectName) return;
+    try {
+      const blob = await fetchReport(objectName, 'Rental', format);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `report.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    } catch (err: any) {
+      setError(err?.message || 'Export failed');
+    }
+  }
+ 
   return (
     <div className="container">
       <header className="app-header">
         <h1>DOCSENSE</h1>
         <p>Your AI Assistant for Rental & Loan Agreements</p>
       </header>
-
+ 
       <div className="disclaimer-banner">
         <p>AI-POWERED ANALYSIS — NOT A SUBSTITUTE FOR PROFESSIONAL LEGAL ADVICE.</p>
       </div>
-
+ 
       <div className="card upload-card">
         <input type="file" id="file-upload" accept=".pdf,.docx,.txt" onChange={onUpload} disabled={uploading} />
         <label htmlFor="file-upload" className="upload-button">
@@ -175,8 +191,11 @@ function App() {
             <button onClick={onAnalyze} disabled={analyzing}>
               {analyzing ? 'Analyzing...' : 'Analyze Document'}
             </button>
-            <button onClick={() => window.open(exportReportUrl(objectName, 'Rental'))} disabled={!objectName}>
-              Export Report
+            <button onClick={() => onExport('pdf')} disabled={!objectName}>
+              Export PDF
+            </button>
+            <button onClick={() => onExport('html')} disabled={!objectName}>
+              Export HTML
             </button>
             <button onClick={onDelete} className="delete-button">Delete Now</button>
           </div>

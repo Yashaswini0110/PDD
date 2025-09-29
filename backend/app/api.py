@@ -1,12 +1,13 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Query
+from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
 from typing import Dict, Any
 import datetime
 import os
 
 from . import storage, parser, severity, qa, export, clauses
+from .auth import get_api_key
 
-router = APIRouter(prefix="/api", tags=["api"]) 
+router = APIRouter(prefix="/api", tags=["api"], dependencies=[Depends(get_api_key)])
 
 
 @router.post("/upload")
@@ -57,14 +58,21 @@ async def question(object_name: str = Query(...), q: str = Query(...)) -> Dict[s
 	return res
 
 
-@router.get("/export", response_class=HTMLResponse)
-async def export_report(object_name: str = Query(...), contract_type: str = Query("UNKNOWN")):
+from fastapi.responses import Response
+
+@router.get("/export")
+async def export_report(object_name: str = Query(...), contract_type: str = Query("UNKNOWN"), format: str = Query("html")):
 	if not storage.file_exists(object_name):
 		raise HTTPException(status_code=404, detail="Object not found")
 	pdf_path = storage.get_local_path(object_name)
 	doc = parser.parse_file_to_clauses(pdf_path)
 	flags = severity.analyze_clauses_with_hybrid_model(doc["clauses"])
 	html = export.generate_report_html(doc, flags, contract_type)
+
+	if format.lower() == "pdf":
+		pdf_content = export.generate_report_pdf(html)
+		return Response(content=pdf_content, media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=report.pdf"})
+	
 	return HTMLResponse(content=html, status_code=200, headers={"Content-Disposition": f"attachment; filename=report.html"})
 	
 @router.delete("/delete")

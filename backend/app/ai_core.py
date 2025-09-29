@@ -1,5 +1,5 @@
 import os
-import pickle
+import json
 import numpy as np
 import cohere
 from dotenv import load_dotenv
@@ -19,17 +19,17 @@ co = cohere.Client(COHERE_API_KEY)
 
 # --- Legal Knowledge Base Integration ---
 
-LEGAL_KB_FILE = "legal_kb.pkl"
+LEGAL_KB_FILE = "legal_kb.json"
 _legal_kb = None
 
 def _load_legal_kb():
-    """Loads the legal knowledge base from the pickle file."""
+    """Loads the legal knowledge base from the JSON file."""
     global _legal_kb
     if _legal_kb is None:
         print("Loading Legal Knowledge Base...")
         try:
-            with open(LEGAL_KB_FILE, "rb") as f:
-                _legal_kb = pickle.load(f)
+            with open(LEGAL_KB_FILE, "r") as f:
+                _legal_kb = json.load(f)
             # Convert embeddings to a NumPy array for efficient calculations
             _legal_kb["embeddings"] = np.array(_legal_kb["embeddings"])
             print("Legal Knowledge Base loaded successfully.")

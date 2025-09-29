@@ -80,14 +80,15 @@ Clone this project to your local machine.
 
 4.  **Set Your API Key:**
     *   Rename the `.env.example` file to `.env`.
-    *   Open the `.env` file and paste your Cohere API key:
+    *   Open the `.env` file and add your Cohere API key and a new API key for the application:
         ```
-        COHERE_API_KEY="YOUR_API_KEY_HERE"
+        COHERE_API_KEY="YOUR_COHERE_API_KEY_HERE"
+        API_KEY="YOUR_APPLICATION_API_KEY_HERE"
         ```
 
 5.  **Populate and Build the Knowledge Base:**
     *   Place your legal PDF documents (e.g., `The_Indian_Contract_Act_1872.pdf`) inside the `legal_kb/` directory.
-    *   Run the build script. This will read your PDFs, embed them, and create the `legal_kb.pkl` file. This may take a few minutes depending on the size of your documents.
+    *   Run the build script. This will read your PDFs, embed them, and create the `legal_kb.json` file. This may take a few minutes depending on the size of your documents.
         ```bash
         python build_kb.py
         ```
@@ -111,7 +112,14 @@ Clone this project to your local machine.
     npm install
     ```
 
-3.  **Run the Frontend Server:**
+3.  **Set Your API Key:**
+    *   Create a new file named `.env` in the `frontend` directory.
+    *   Open the `.env` file and add your application API key. This must match the `API_KEY` in the backend's `.env` file.
+        ```
+        VITE_API_KEY="YOUR_APPLICATION_API_KEY_HERE"
+        ```
+
+4.  **Run the Frontend Server:**
     ```bash
     npm run dev
     ```

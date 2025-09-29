@@ -2,6 +2,9 @@ from typing import List, Dict, Any
 from jinja2 import Environment, FileSystemLoader
 import datetime
 
+from xhtml2pdf import pisa
+from io import BytesIO
+ 
 # Set up Jinja2 environment
 env = Environment(loader=FileSystemLoader("templates"))
 
@@ -41,3 +44,11 @@ def generate_report_html(doc: Dict[str, Any], flags: List[Dict[str, Any]], contr
     }
     
     return template.render(template_data)
+
+def generate_report_pdf(html_content: str) -> bytes:
+    """
+    Converts HTML content to a PDF file.
+    """
+    result = BytesIO()
+    pisa.CreatePDF(BytesIO(html_content.encode("UTF-8")), dest=result)
+    return result.getvalue()
