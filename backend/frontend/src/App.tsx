@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import './App.css'
-import { uploadPdf, analyze, ask, exportReportUrl, deleteNow } from './lib/api.ts'
+import { uploadPdf, analyze, ask, exportReportUrl, deleteNow } from '@/lib/api'
 
 // --- Type Definitions ---
 interface Flag {
