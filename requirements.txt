@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+loguru
+PyPDF2
+scikit-learn
+joblib
+requests
+reportlab

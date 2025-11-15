@@ -1,0 +1,45 @@
+{
+  "domain": "india_rental_and_loans",
+  "version": "0.2",
+  "sources": [
+    "Model Tenancy Act (Govt. of India) summary",
+    "Common urban rental practices in India",
+    "RBI consumer-friendly lending guidelines (public summaries)"
+  ],
+  "thresholds": {
+    "max_security_deposit_months": 3,
+    "max_late_fee_percent": 3
+  },
+  "severity_rules": [
+    {
+      "id": "lockin_gt_notice",
+      "weight": 0.5,
+      "description": "Lock-in period is greater than notice period.",
+      "kb_ref": "thresholds"
+    },
+    {
+      "id": "large_deposit",
+      "weight": 0.2,
+      "description": "Security deposit appears higher than typical norms.",
+      "kb_ref": "thresholds.max_security_deposit_months"
+    },
+    {
+      "id": "large_deposit_unsure",
+      "weight": 0.1,
+      "description": "Security deposit is mentioned but amount unclear.",
+      "kb_ref": "thresholds.max_security_deposit_months"
+    },
+    {
+      "id": "unilateral_termination",
+      "weight": 0.4,
+      "description": "Termination rights are one-sided (landlord/lender only).",
+      "kb_ref": "rental_norms.unilateral_termination"
+    },
+    {
+      "id": "high_late_fee",
+      "weight": 0.2,
+      "description": "Late fee appears to exceed normal consumer norms.",
+      "kb_ref": "thresholds.max_late_fee_percent"
+    }
+  ]
+}
