@@ -7,3 +7,4 @@
 [STEP] v0.6 Added legal_kb.json + KB-driven severity engine + /knowledge/kb + UNKNOWN fallback @ 2025-11-15T09:56:48.000Z
 [STEP] v0.6 Added human-readable answers to /query and improved TEAM_GUIDE for frontend/DB teammates. @ 2025-11-15T17:50:00.000Z
 [STEP] v0.7 Updated TEAM_GUIDE + README with tech stack and added .gitignore for clean GitHub deployment. @ 2025-11-15T18:56:00.000Z
+[STEP] v0.8 Added "Getting Started for Teammates" guide to README.md @ 2025-11-17T05:10:16.000Z
