@@ -17,12 +17,10 @@ def create_pdf_with_text(output_path: Path, text_content: str):
 
 if __name__ == "__main__":
     sample_text = """
-    This is a sample document for testing purposes.
-    It contains several sentences that can be split into clauses.
-    The quick brown fox jumps over the lazy dog.
-    Security deposit is required for all new tenants.
-    The lease agreement specifies the terms and conditions.
-    Payment must be made by the first of each month.
-    Failure to comply may result in penalties.
+    This is a general clause and has no specific risk.
+    The tenant must provide a notice period of 1 month before vacating the premises.
+    The landlord reserves the right to terminate this agreement at their sole discretion with a 7-day notice.
+    A security deposit of 5 months' rent is required for all new tenants. There is a 6-month lock-in period.
+    The late fee for rent payments will be 5% of the monthly rent.
     """
     create_pdf_with_text(Path("dummy_with_text.pdf"), sample_text)

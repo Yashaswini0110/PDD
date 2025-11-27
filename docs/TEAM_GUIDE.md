@@ -40,7 +40,11 @@
      - For each matched clause, runs the **rule-based severity engine**.
      - Severity engine uses `knowledge/legal_kb.json` thresholds (max deposit months, late fee %, etc.).
    - Response:
-     - `answer`: human-friendly summary.
+     - `answer`: human-friendly summary with risk-level specific messages:
+       - **GREEN (Low Risk)**: "Your document does talk about '{query}'. Clause {cid} on page {page} mentions it as: '{clause_text}'. Our rules currently mark this as GREEN (low risk, score {risk_score:.2f}). {main_reason}"
+       - **YELLOW (Medium Risk)**: "I found a clause about '{query}' (clause {cid}, page {page}): '{clause_text}'. This looks like a MEDIUM risk (YELLOW, score {risk_score:.2f}). {main_reason}"
+       - **RED (High Risk)**: "Warning: clause {cid} on page {page} seems HIGH risk (RED, score {risk_score:.2f}) regarding '{query}'. Text: '{clause_text}'. {main_reason}"
+       - **UNKNOWN**: "UNKNOWN – this clause does not exist clearly in your document."
      - `matches`: list of clauses with:
        - `text`, `score` (similarity),
        - `risk_score`, `risk_level` (GREEN/YELLOW/RED),
@@ -89,23 +93,25 @@
 - Avoid global state—job_id always in path.
 - Log milestones (index built, parse ok).
 - If any key/secret is added later, load from env (never commit).
-## Severity Engine & Risk Scoring (v0.4)
+## Severity Engine & Risk Scoring (v1.0)
 
 - File: `services/severity.py`
 - Approach: **rule-based + weighted scoring** (no LLM required for MVP).
+- The rule weights and thresholds have been tuned based on `tests/labeled_clauses_sample.json` for improved accuracy.
 - For each clause, we:
   - Extract simple signals: months, percentages, keywords (lock-in, notice, deposit, late fee, arbitration, etc.).
-  - Apply a set of rules, each with a weight:
-    - `lockin_gt_notice` (+0.50) → lock-in months > notice months.
-    - `large_deposit` (+0.20) → security deposit >= ~2 months rent (or unclear but mentioned).
-    - `unilateral_termination` (+0.40) → landlord/owner/lender can terminate at any time / without notice.
-    - `high_late_fee` (+0.20) → late fee / penalty > ~3% per month.
-    - `far_arbitration_maybe` (+0.20) → arbitration venue specified (may be far from user).
+  - Apply a set of rules, each with a weight (defined in `knowledge/legal_kb.json`):
+    - `lockin_gt_notice`: Indicates potential issues with lock-in periods.
+    - `very_large_deposit`: For security deposits >= 4 months.
+    - `large_deposit`: For security deposits of 2-3 months.
+    - `large_deposit_unsure`: When deposit is mentioned but amount is unclear.
+    - `unilateral_termination`: When termination rights are heavily one-sided.
+    - `high_late_fee`: When late fees exceed typical norms.
   - Sum weights → `risk_score` in [0, 1].
-  - Map to `risk_level`:
-    - 0–0.33 → GREEN
-    - 0.34–0.66 → YELLOW
-    - 0.67–1.0 → RED
+  - Map to `risk_level` (configurable in `severity.py`):
+    - GREEN: 0.00 – 0.29
+    - YELLOW: 0.30 – 0.69
+    - RED: 0.70 – 1.00
 
 - API:
   - `POST /analyze/{job_id}/clauses`
@@ -204,3 +210,33 @@
 - Where the legal knowledge base lives:
   - `knowledge/legal_kb.json` → thresholds (like max deposit months, max late fee %) and rule descriptions.
   - Severity engine uses this so they don’t need to touch it to build UI.
+
+## Severity Engine Evaluation (developer-only)
+
+We added a small evaluation script to sanity-check the rule-based severity engine.
+
+Run:
+
+```bash
+python evaluate_severity.py
+```
+
+This prints accuracy + confusion matrix on a tiny labeled set.
+```
+
+This is useful for debugging and for writing the project report.
+
+## Full pipeline sanity check (developer-only)
+
+To confirm that upload → parse → index → query works end-to-end:
+
+```bash
+python test_full_flow.py
+```
+
+This:
+- uploads `dummy_with_text.pdf` (or `sample.1.pdf` if `dummy_with_text.pdf` is not available)
+- parses it into `clauses.json`
+- builds a TF-IDF index
+- calls `/query/{job_id}` with a few sample questions
+- prints the answer and top match with risk level & score

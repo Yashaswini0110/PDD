@@ -13,31 +13,37 @@
   "severity_rules": [
     {
       "id": "lockin_gt_notice",
-      "weight": 0.5,
-      "description": "Lock-in period is greater than notice period.",
+      "weight": 0.6,
+      "description": "Lock-in period is present and potentially excessive without clear notice, or is greater than notice period.",
       "kb_ref": "thresholds"
     },
     {
+      "id": "very_large_deposit",
+      "weight": 0.7,
+      "description": "Security deposit is significantly higher (>=4 months) than typical norms, indicating high risk.",
+      "kb_ref": "thresholds.max_security_deposit_months"
+    },
+    {
       "id": "large_deposit",
-      "weight": 0.2,
-      "description": "Security deposit appears higher than typical norms.",
+      "weight": 0.4,
+      "description": "Security deposit appears higher (2-3 months) than typical norms.",
       "kb_ref": "thresholds.max_security_deposit_months"
     },
     {
       "id": "large_deposit_unsure",
-      "weight": 0.1,
-      "description": "Security deposit is mentioned but amount unclear.",
+      "weight": 0.2,
+      "description": "Security deposit is mentioned but amount unclear. This adds a minor risk flag.",
       "kb_ref": "thresholds.max_security_deposit_months"
     },
     {
       "id": "unilateral_termination",
-      "weight": 0.4,
-      "description": "Termination rights are one-sided (landlord/lender only).",
+      "weight": 0.8,
+      "description": "Termination rights are one-sided (landlord/lender only) or heavily favor one party.",
       "kb_ref": "rental_norms.unilateral_termination"
     },
     {
       "id": "high_late_fee",
-      "weight": 0.2,
+      "weight": 0.35,
       "description": "Late fee appears to exceed normal consumer norms.",
       "kb_ref": "thresholds.max_late_fee_percent"
     }

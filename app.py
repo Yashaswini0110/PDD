@@ -193,7 +193,9 @@ def parse(job_id: str):
     if not pdfs:
         raise HTTPException(400, "no PDF file found for job")
     pdf_path = pdfs[0]
+    logger.info(f"parse_job job_id={job_id} pdf_path={pdf_path}")
     pages = extract_text_from_pdf(pdf_path)
+    logger.info(f"parse_job job_id={job_id} extracted_pages={len(pages)}")
     all_clauses = []
     for page_num, text in enumerate(pages, start=1):
         clauses = split_into_clauses(text)
@@ -203,13 +205,14 @@ def parse(job_id: str):
                 "page": page_num,
                 "text": clause
             })
+    logger.info(f"parse_job job_id={job_id} total_clauses={len(all_clauses)}")
     out = {
         "job_id": job_id,
         "pages": len(pages),
         "clauses_count": len(all_clauses),
         "clauses": all_clauses
     }
-    (job_dir / "clauses.json").write_text(json.dumps(out, ensure_ascii=False, indent=2))
+    (job_dir / "clauses.json").write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
     return {"job_id": job_id, "pages": len(pages), "clauses_count": len(all_clauses)}
     size = sum(p.stat().st_size for p in jd.iterdir() if p.is_file())
     created = (jd / "created_at.txt").read_text() if (jd / "created_at.txt").exists() else None
@@ -221,7 +224,7 @@ def rag_index(job_id: str):
     cj = job_dir / "clauses.json"
     if not cj.exists():
         raise HTTPException(404, "clauses.json not found. Run /process/{job_id}/parse first.")
-    data = json.loads(cj.read_text())
+    data = json.loads(cj.read_text(encoding="utf-8"))
     clauses = data.get("clauses", [])
     info = build_tfidf_index(job_id, clauses)
     return {"job_id": job_id, "clauses": len(clauses), "shape": info}
@@ -317,22 +320,40 @@ def get_user_history(uid: str):
         history.append(doc)
     return history
 
-def build_answer(query: str, matches: list[dict]) -> str:
+def build_answer_for_query(query: str, matches: list[dict]) -> str:
     if not matches:
         return "UNKNOWN – this clause does not exist clearly in your document."
 
     best = matches[0]
-    clause_id = best.get("id", "N/A")
+    cid = best.get("id", "N/A")
     page = best.get("page", "N/A")
-    risk_level = best.get("risk_level", "N/A")
-    risk_score = best.get("risk_score", "N/A")
-    reasons = best.get("reasons", ["no specific reason available"])
+    risk_level = best.get("risk_level", "UNKNOWN").upper()
+    risk_score = best.get("risk_score", 0.0)
+    reasons = best.get("reasons", [])
+    clause_text = best.get("text", "")
 
-    answer_string = (
-        f"I found clause {clause_id} on page {page} related to your query '{query}'. "
-        f"Risk level: {risk_level} (score {risk_score}). "
-        f"Reason: {reasons[0]}."
-    )
+    main_reason = reasons[0] if reasons else "Please review this clause carefully."
+
+    if risk_level == "GREEN":
+        answer_string = (
+            f"Your document does talk about '{query}'. Clause {cid} on page {page} mentions it as: '{clause_text}'. "
+            f"Our rules currently mark this as GREEN (low risk, score {risk_score:.2f}). {main_reason}"
+        )
+    elif risk_level == "YELLOW":
+        answer_string = (
+            f"I found a clause about '{query}' (clause {cid}, page {page}): '{clause_text}'. "
+            f"This looks like a MEDIUM risk (YELLOW, score {risk_score:.2f}). {main_reason}"
+        )
+    elif risk_level == "RED":
+        answer_string = (
+            f"Warning: clause {cid} on page {page} seems HIGH risk (RED, score {risk_score:.2f}) regarding '{query}'. "
+            f"Text: '{clause_text}'. {main_reason}"
+        )
+    else: # Fallback for UNKNOWN or unexpected risk levels
+        answer_string = (
+            f"I found clause {cid} on page {page} related to your query '{query}'. "
+            f"Text: '{clause_text}'. Risk level: {risk_level} (score {risk_score:.2f}). {main_reason}"
+        )
     return answer_string
 
 @app.post("/query/{job_id}")
@@ -378,7 +399,7 @@ def query_job(job_id: str, payload: dict):
                 **risk,
             })
 
-    answer = build_answer(query, enriched_matches)
+    answer = build_answer_for_query(query, enriched_matches)
 
     # Save chat to DB
     db = get_db()
