@@ -1,15 +1,14 @@
-name: CI for Python + Next.js
+name: CI for Python Project
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch:  # allows manual run
+  workflow_dispatch:
 
 jobs:
-
-  python:
+  python-backend:
     name: Python Backend Check
     runs-on: ubuntu-latest
 
@@ -26,29 +25,10 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    - name: Skip Python tests (none yet)
-      run: echo "No Python tests yet"
+    - name: Skip tests (no tests yet)
+      run: echo "No tests written yet"
 
-  nextjs:
-    name: Next.js Frontend Build
-    runs-on: ubuntu-latest
-    needs: python   # run only after python job succeeds
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-
-    - name: Install Next.js dependencies
+    - name: List project files (includes frontend static files)
       run: |
-        cd frontend
-        npm install
-
-    - name: Build Next.js Project
-      run: |
-        cd frontend
-        npm run build || echo "Build failed or no build script"
+        echo "Project structure:"
+        ls -R
