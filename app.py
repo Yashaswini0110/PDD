@@ -67,8 +67,6 @@ class UserProfile(BaseModel):
     dob: str
     phone: str
     address: str
-    pan: str
-    aadhaar: str
 
 @app.post("/users/register")
 def register_user(user: UserProfile):
@@ -120,9 +118,7 @@ def get_user(uid: str):
             "email": "dev@clauseclear.com",
             "phone": "0000000000",
             "address": "Mock Address",
-            "dob": "2000-01-01",
-            "pan": "ABCDE1234F",
-            "aadhaar": "123456789012"
+            "dob": "2000-01-01"
         }
     
     user = db["users"].find_one({"uid": uid}, {"_id": 0})
@@ -286,7 +282,7 @@ def analyze_job_clauses(job_id: str, uid: str = "dev-user"):
                 filename = p.name
                 break
         
-        db["jobs"].update_one(
+        result = db["jobs"].update_one(
             {"job_id": job_id},
             {"$set": {
                 "job_id": job_id,
@@ -297,7 +293,6 @@ def analyze_job_clauses(job_id: str, uid: str = "dev-user"):
             }},
             upsert=True
         )
-
     logger.info(f"analyze_ok job_id={job_id} total={len(analyzed)} summary={summary}")
 
     return {
