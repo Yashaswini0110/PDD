@@ -1,4 +1,5 @@
 import os
+import certifi
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from loguru import logger
@@ -13,12 +14,14 @@ db = None
 def init_db():
     global client, db
     try:
-        client = MongoClient(MONGO_URI)
+        client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
         db = client[DB_NAME]
         # Check connection
         client.admin.command('ping')
+        print(">>> SUCCESS: Connected to MongoDB")
         logger.info(f"Connected to MongoDB at {MONGO_URI}")
     except Exception as e:
+        print(f">>> FAILURE: Failed to connect to MongoDB: {e}")
         logger.error(f"Failed to connect to MongoDB: {e}")
         # We might want to raise here or just log depending on strictness
         # For this MVP, we'll log but let the app continue (endpoints using DB will fail)
