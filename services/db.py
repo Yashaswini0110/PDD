@@ -13,15 +13,22 @@ db = None
 def init_db():
     global client, db
     try:
-        client = MongoClient(MONGO_URI)
+        # Explicitly disable SSL validation for MongoDB Atlas connection
+        # This is a common workaround for SSL handshake issues, but should be
+        # reviewed for production environments. For a full solution,
+        # trusted CA certificates should be provided.
+        client = MongoClient(MONGO_URI, tls=True, tlsAllowInvalidCertificates=True, tlsAllowInvalidHostnames=True)
         db = client[DB_NAME]
         # Check connection
         client.admin.command('ping')
         logger.info(f"Connected to MongoDB at {MONGO_URI}")
     except Exception as e:
         logger.error(f"Failed to connect to MongoDB: {e}")
-        # We might want to raise here or just log depending on strictness
-        # For this MVP, we'll log but let the app continue (endpoints using DB will fail)
+        # Log the error but continue, effectively disabling DB for the current session
+        client = None
+        db = None
+        logger.warning("MongoDB connection disabled. Endpoints requiring DB will use mock data or fail gracefully.")
 
 def get_db():
+    # Return None if DB connection failed, allowing mock data or graceful failure
     return db

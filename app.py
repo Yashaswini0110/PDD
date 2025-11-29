@@ -136,12 +136,7 @@ async def favicon():
 
 @app.get("/health")
 def health():
-    return {
-        "status": "ok",
-        "app": "ClauseClear Mini",
-        "version": "0.1.0",
-        "time": datetime.now(timezone.utc).isoformat()
-    }
+    return {"status": "ok"}
 
 @app.get("/knowledge/kb")
 def get_legal_kb():
