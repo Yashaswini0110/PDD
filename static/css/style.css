@@ -1,13 +1,13 @@
 :root {
-  --bg-color: #000000;
-  --text-color: #ffffff;
-  --accent-color: #dfff00; /* Neon Yellow */
-  --accent-glow: 0 0 10px rgba(223, 255, 0, 0.5);
-  --card-bg: #111111;
-  --input-bg: #1a1a1a;
-  --border-color: #333333;
-  --error-color: #ff3333;
-  --success-color: #00ff66;
+  --bg-color: #ede4d5; /* Cream/Beige */
+  --text-color: #1a1614; /* Dark Coffee */
+  --accent-color: #8f5e38; /* Classic Brown */
+  --accent-glow: 0 0 10px rgba(143, 94, 56, 0.3);
+  --card-bg: #fdfbf7; /* Off-White */
+  --input-bg: #f5f0eb; /* Light Beige */
+  --border-color: #d6cbbd; /* Light Brown Border */
+  --error-color: #bf4040; /* Muted Red */
+  --success-color: #6b8e23; /* Olive Green */
   --font-family: "Inter", sans-serif;
 }
 
@@ -73,7 +73,7 @@ h1 {
 
 .card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(223, 255, 0, 0.1);
+  box-shadow: 0 5px 15px rgba(196, 165, 129, 0.1);
   border-color: var(--accent-color);
 }
 
@@ -125,7 +125,7 @@ input:focus {
 }
 
 .btn-primary:hover {
-  background-color: #cce600;
+  background-color: #a38563;
 }
 
 /* Auth Pages */
@@ -146,7 +146,7 @@ input:focus {
 .upload-area:hover,
 .upload-area.dragover {
   border-color: var(--accent-color);
-  background-color: rgba(223, 255, 0, 0.05);
+  background-color: rgba(196, 165, 129, 0.05);
 }
 
 /* Results */
@@ -156,7 +156,7 @@ input:focus {
   background: linear-gradient(
     90deg,
     var(--success-color),
-    #ffff00,
+    var(--accent-color),
     var(--error-color)
   );
   margin: 1rem 0;
@@ -194,7 +194,7 @@ input:focus {
 }
 
 .ai-msg {
-  background-color: rgba(223, 255, 0, 0.1);
+  background-color: rgba(196, 165, 129, 0.1);
   border-left: 2px solid var(--accent-color);
 }
 
@@ -262,8 +262,8 @@ input:focus {
   align-items: center;
   padding: 1.5rem 4rem; /* Increased padding for 1920x1080 */
   margin-bottom: 3rem;
-  background-color: #000000;
-  border-bottom: 1px solid #222;
+  background-color: var(--bg-color);
+  border-bottom: 1px solid var(--border-color);
   width: 100%;
 }
 
@@ -323,7 +323,7 @@ input:focus {
 }
 
 .logout-icon {
-  color: white;
+  color: var(--text-color);
   font-size: 2.5rem;
   cursor: pointer;
   background: none;
@@ -379,7 +379,7 @@ input:focus {
   width: 90%;
   max-width: 500px;
   position: relative;
-  box-shadow: 0 0 20px rgba(223, 255, 0, 0.2);
+  box-shadow: 0 0 20px rgba(196, 165, 129, 0.2);
   animation: fadeIn 0.3s ease;
   max-height: 90vh;
   overflow-y: auto;

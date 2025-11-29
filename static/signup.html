@@ -34,22 +34,6 @@
             required
           ></textarea>
 
-          <input
-            type="text"
-            id="pan"
-            placeholder="PAN Card (e.g., ABCDE1234F)"
-            required
-            maxlength="10"
-            style="text-transform: uppercase"
-          />
-          <input
-            type="text"
-            id="aadhaar"
-            placeholder="Aadhaar Card (12 digits)"
-            required
-            maxlength="12"
-          />
-
           <div
             id="validation-msg"
             style="
@@ -86,25 +70,7 @@
           msg.textContent = "";
 
           // --- Validation Logic ---
-          const pan = document.getElementById("pan").value.toUpperCase();
-          const aadhaar = document.getElementById("aadhaar").value;
           const phone = document.getElementById("phone").value;
-
-          // PAN Regex: 5 letters, 4 digits, 1 letter
-          const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-          if (!panRegex.test(pan)) {
-            msg.textContent =
-              "Invalid PAN Card format. Must be 5 letters, 4 digits, 1 letter.";
-            return;
-          }
-
-          // Aadhaar Regex: 12 digits
-          const aadhaarRegex = /^\d{12}$/;
-          if (!aadhaarRegex.test(aadhaar)) {
-            msg.textContent =
-              "Invalid Aadhaar Number. Must be exactly 12 digits.";
-            return;
-          }
 
           // Phone Regex: Basic 10+ digits
           if (phone.length < 10) {
@@ -136,8 +102,6 @@
               dob: document.getElementById("dob").value,
               phone: phone,
               address: document.getElementById("address").value,
-              pan: pan,
-              aadhaar: aadhaar,
             };
 
             // Store in local storage for the payment page to use if needed,
