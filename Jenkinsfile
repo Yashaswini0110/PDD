@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        PROJECT_ID   = 'productdesigndev'      // TODO: replace with actual project id
+        PROJECT_ID   = 'productdesigndev'        // <-- put real project id
         REGION       = 'us-central1'
         REPO_NAME    = 'clauseclear'
         SERVICE_NAME = 'clauseclear-backend'
@@ -13,26 +13,22 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
-                dir('PDD') {
-                    sh 'ls'
-                }
+                // list files at repo root so we see Dockerfile, app.py, etc.
+                sh 'ls'
             }
         }
 
         stage('Build & Sanity Test') {
             steps {
-                dir('PDD') {
-                    // quick syntax check (optional)
-                    sh 'python -m compileall . || true'
-                }
+                // quick Python syntax check (not required but nice)
+                sh 'python -m compileall . || true'
             }
         }
 
         stage('Docker Build') {
             steps {
-                dir('PDD') {
-                    sh 'docker build -t ${IMAGE}:latest .'
-                }
+                // build Docker image using Dockerfile at repo root
+                sh 'docker build -t ${IMAGE}:latest .'
             }
         }
 
