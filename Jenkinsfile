@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        PROJECT_ID   = 'productdesigndev'        // <-- put real project id
+        PROJECT_ID   = 'productdesigndev'  
         REGION       = 'us-central1'
         REPO_NAME    = 'clauseclear'
         SERVICE_NAME = 'clauseclear-backend'
@@ -13,34 +13,27 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
-                // list files at repo root so we see Dockerfile, app.py, etc.
-                sh 'ls'
-            }
-        }
-
-        stage('Build & Sanity Test') {
-            steps {
-                // quick Python syntax check (not required but nice)
-                sh 'python -m compileall . || true'
+                // Windows: use 'dir' instead of 'ls'
+                bat 'dir'
             }
         }
 
         stage('Docker Build') {
             steps {
-                // build Docker image using Dockerfile at repo root
-                sh 'docker build -t ${IMAGE}:latest .'
+                // Groovy expands ${IMAGE} before sending to cmd.exe
+                bat "docker build -t ${IMAGE}:latest ."
             }
         }
 
         stage('Push to Artifact Registry') {
             steps {
                 withCredentials([file(credentialsId: 'gcp-sa-json', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                    sh '''
-                    gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
-                    gcloud config set project ${PROJECT_ID}
-                    gcloud auth configure-docker ${REGION}-docker.pkg.dev -q
-                    docker push ${IMAGE}:latest
-                    '''
+                    bat """
+gcloud auth activate-service-account --key-file=%GOOGLE_APPLICATION_CREDENTIALS%
+gcloud config set project ${PROJECT_ID}
+gcloud auth configure-docker ${REGION}-docker.pkg.dev -q
+docker push ${IMAGE}:latest
+"""
                 }
             }
         }
@@ -48,16 +41,17 @@ pipeline {
         stage('Deploy to Cloud Run') {
             steps {
                 withCredentials([file(credentialsId: 'gcp-sa-json', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                    sh '''
-                    gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
-                    gcloud config set project ${PROJECT_ID}
-                    gcloud run deploy ${SERVICE_NAME} \
-                      --image ${IMAGE}:latest \
-                      --region ${REGION} \
-                      --platform managed \
-                      --allow-unauthenticated \
-                      --port 5055
-                    '''
+                    bat """
+gcloud auth activate-service-account --key-file=%GOOGLE_APPLICATION_CREDENTIALS%
+gcloud config set project ${PROJECT_ID}
+gcloud config set run/region ${REGION}
+gcloud run deploy ${SERVICE_NAME} ^
+  --image ${IMAGE}:latest ^
+  --region ${REGION} ^
+  --platform managed ^
+  --allow-unauthenticated ^
+  --port 5055
+"""
                 }
             }
         }
