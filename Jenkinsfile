@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        PROJECT_ID   = 'YOUR_GCP_PROJECT_ID'   // <-- change this
-        REGION       = 'asia-south1'
+        PROJECT_ID   = 'productdesigndev'      // TODO: replace with actual project id
+        REGION       = 'us-central1'
         REPO_NAME    = 'clauseclear'
         SERVICE_NAME = 'clauseclear-backend'
         IMAGE        = "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}"
@@ -22,6 +22,7 @@ pipeline {
         stage('Build & Sanity Test') {
             steps {
                 dir('PDD') {
+                    // quick syntax check (optional)
                     sh 'python -m compileall . || true'
                 }
             }
