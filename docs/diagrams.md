@@ -2,48 +2,85 @@
 
 This document provides visual explanations of the ClauseClear system's key workflows and architecture using Mermaid diagrams.
 
-## 1. End-to-End Pipeline
+## End-to-End Flow (User → Backend → LLM → Result)
 
-This diagram illustrates the complete flow of a document through the ClauseClear system, from user upload to the final flagged and answered report presented back to the user. It highlights the interaction between the frontend, backend services, and external Google Cloud components.
+This diagram shows the complete flow from user upload through PDF parsing, clause extraction, indexing, querying, and LLM-powered explanation.
+
+```mermaid
+flowchart TD
+    User[User uploads PDF] --> Upload[POST /files/upload]
+    Upload --> Storage[storage/uploads/job_id/]
+    Storage --> Parse[POST /process/job_id/parse]
+    Parse --> PyPDF2[PyPDF2 extracts text]
+    PyPDF2 --> Clauses[Split into clauses]
+    Clauses --> ClausesJSON[clauses.json saved]
+    ClausesJSON --> Index[POST /rag/job_id/index]
+    Index --> TFIDF[TF-IDF vectorization]
+    TFIDF --> Embeddings[embeddings/job_id.pkl]
+    Embeddings --> Query[POST /query/job_id]
+    Query --> Search[TF-IDF cosine similarity]
+    Search --> Severity[Severity engine + legal_kb.json]
+    Severity --> RiskScore[Risk level + score + reasons]
+    RiskScore --> BaseAnswer[base_answer generated]
+    BaseAnswer --> LLMQuery[POST /query_llm/job_id]
+    LLMQuery --> Gemini[Gemini API call]
+    Gemini --> SimpleAnswer[answer_llm: simple explanation]
+    SimpleAnswer --> UserResult[User receives result]
+```
+
+The flow starts with PDF upload, extracts text using PyPDF2, splits into clauses, builds a TF-IDF index for semantic search, scores clauses for risk using India-specific rules, and optionally uses Gemini to rewrite explanations in simple language.
+
+## Severity Engine Workflow
+
+This diagram details how the rule-based severity engine analyzes clauses against India-specific rules to assign risk levels.
+
+```mermaid
+flowchart TD
+    Input[Input: Clause Text] --> LoadKB[Load legal_kb.json]
+    LoadKB --> Rules[Severity Rules + Thresholds]
+    Rules --> Match1[Match: lockin_gt_notice?]
+    Rules --> Match2[Match: very_large_deposit?]
+    Rules --> Match3[Match: large_deposit?]
+    Rules --> Match4[Match: unilateral_termination?]
+    Rules --> Match5[Match: high_late_fee?]
+    Match1 --> Weight1[Weight: 0.6]
+    Match2 --> Weight2[Weight: 0.7]
+    Match3 --> Weight3[Weight: 0.4]
+    Match4 --> Weight4[Weight: 0.8]
+    Match5 --> Weight5[Weight: 0.35]
+    Weight1 --> Compute[Compute risk_score]
+    Weight2 --> Compute
+    Weight3 --> Compute
+    Weight4 --> Compute
+    Weight5 --> Compute
+    Compute --> Threshold{Check Thresholds}
+    Threshold -->|score < 0.3| Green[GREEN: Low Risk]
+    Threshold -->|0.3 <= score < 0.6| Yellow[YELLOW: Medium Risk]
+    Threshold -->|score >= 0.6| Red[RED: High Risk]
+    Green --> Output[Output: risk_level + risk_score + reasons]
+    Yellow --> Output
+    Red --> Output
+```
+
+The severity engine loads rules from legal_kb.json, matches patterns in clause text (security deposits, lock-in periods, termination clauses, etc.), applies weighted scoring, and maps the final score to GREEN/YELLOW/RED risk levels with explanatory reasons.
+
+## CI/CD Pipeline (Jenkins → Artifact Registry → Cloud Run)
+
+This diagram shows the automated deployment pipeline from code push to Cloud Run service deployment.
 
 ```mermaid
 flowchart LR
-    User --> Frontend
-    Frontend --> Backend[FastAPI App]
-    Backend --> GCS[(Cloud Storage)]
-    GCS --> DocAI[(Document AI)]
-    DocAI --> Backend
-    Backend --> Gemini[(Vertex AI Gemini)]
-    Backend --> SeverityEngine[(Severity Rules)]
-    Gemini --> Backend
-    SeverityEngine --> Backend
-    Backend --> Response(JSON Response)
-    Response --> Frontend
-    Frontend --> User
+    Developer[Developer] -->|Push to GitHub| GitHub[GitHub Repository]
+    GitHub -->|Webhook/Manual Trigger| Jenkins[Jenkins Pipeline]
+    Jenkins --> Stage1[Stage 1: Checkout]
+    Stage1 --> Stage2[Stage 2: Docker Build]
+    Stage2 --> Stage3[Stage 3: Push to Artifact Registry]
+    Stage3 --> Auth[GCP Service Account Auth]
+    Auth --> ArtifactReg[us-central1-docker.pkg.dev/productdesigndev/clauseclear/clauseclear-backend]
+    ArtifactReg --> Stage4[Stage 4: Deploy to Cloud Run]
+    Stage4 --> EnvVars[Inject Env Vars: GEMINI_API_KEY, MONGO_URI, GEMINI_MODEL_NAME]
+    EnvVars --> CloudRun[Cloud Run Service: clauseclear-backend]
+    CloudRun --> Users[Users access service]
 ```
 
-## 2. Severity Engine Workflow
-
-The Severity Engine is responsible for evaluating extracted clauses against India-specific rules to assign a risk level (Green, Yellow, or Red). This diagram details the internal process, including rule matching and reasoning generation.
-
-```mermaid
-graph TD
-    A[Input Clauses] --> B{Rule Matching (Regex/Heuristics)}
-    B --> C{Optional LLM Extraction}
-    C --> D[Assign Green/Yellow/Red + Reason]
-    D --> E[Output Risk Summary]
-```
-
-## 3. CI/CD (GitHub + Jenkins + Cloud Run)
-
-This diagram outlines the continuous integration and continuous deployment pipeline. It shows how code changes are pushed by a developer, processed by GitHub, trigger a Jenkins pipeline, and ultimately lead to an updated service running on Google Cloud Run.
-
-```mermaid
-flowchart LR
-    Developer --> |Push Code| GitHub
-    GitHub --> |Webhook Trigger| Jenkins[Jenkins Pipeline]
-    Jenkins --> |Checkout Repo| Jenkins
-    Jenkins --> |Docker Build| Jenkins
-    Jenkins --> |Push Image| ArtifactRegistry[(Artifact Registry)]
-    ArtifactRegistry --> |Deploy Service| CloudRun[(Cloud Run)]
-    CloudRun --> ServiceLive(Updated Service Live)
+The Jenkins pipeline checks out code, builds a Docker image, pushes it to GCP Artifact Registry, and deploys to Cloud Run with environment variables injected from Jenkins credentials. The service is then live and accessible to users.

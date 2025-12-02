@@ -9,8 +9,10 @@ from services.severity import score_clause
 
 def evaluate_severity_engine():
     # Load labeled clauses from the tests/ folder
+    # Use __file__ to get the script's directory, then navigate to tests/
     try:
-        labeled_data_path = Path("tests") / "labeled_clauses_sample.json" # Now relative to PDD
+        base = Path(__file__).parent
+        labeled_data_path = base / "tests" / "labeled_clauses_sample.json"
         with open(labeled_data_path, "r", encoding="utf-8") as f:
             labeled_data = json.load(f)
     except FileNotFoundError:

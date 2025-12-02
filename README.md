@@ -13,6 +13,7 @@ ClauseClear is a web application designed to demystify legal contracts. Users ca
 *   Clause-by-clause summaries in plain English
 *   Severity scoring (Green/Yellow/Red) with India-specific rules
 *   Q&A with exact clause citations from the document
+*   Gemini-powered 8th-grade explanations via `/query_llm/{job_id}` endpoint for simple, tenant-friendly language
 *   Exportable report (PDF/HTML) for easy review
 *   Privacy features: temporary storage and a user-triggered delete-now endpoint
 
@@ -37,7 +38,12 @@ flowchart LR
 
 ## Diagrams
 
-For more detailed architectural and workflow diagrams, please refer to the [System Diagrams](PDD/docs/diagrams.md) document.
+For more detailed architectural and workflow diagrams, please refer to the [System Diagrams](docs/diagrams.md) document.
+
+## Documentation
+
+*   [Detailed project report](report.md) - Comprehensive documentation of the project architecture, backend pipeline, LLM integration, and DevOps setup
+*   [Architecture diagrams (Mermaid)](docs/diagrams.md) - Visual Mermaid diagrams for end-to-end flow, severity engine workflow, and CI/CD pipeline
 
 ## Tech Stack
 
