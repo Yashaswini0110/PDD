@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "description": "Tiny sample set for severity engine evaluation",
+    "labels": ["GREEN", "YELLOW", "RED"]
+  },
+  "items": [
+    {
+      "id": "T01",
+      "text": "Tenant must provide a security deposit equal to 2 months rent.",
+      "expected_level": "YELLOW"
+    },
+    {
+      "id": "T02",
+      "text": "The tenant may terminate the agreement with one month notice and no penalty.",
+      "expected_level": "GREEN"
+    },
+    {
+      "id": "T03",
+      "text": "The landlord reserves the right to terminate this agreement at their sole discretion with a 7-day notice.",
+      "expected_level": "RED"
+    },
+    {
+      "id": "T04",
+      "text": "A security deposit of 5 months' rent is required. There is also a 6-month lock-in period.",
+      "expected_level": "RED"
+    },
+    {
+      "id": "T05",
+      "text": "The late fee for rent payments will be 5% of the monthly rent.",
+      "expected_level": "YELLOW"
+    },
+    {
+      "id": "T06",
+      "text": "This clause outlines the procedure for routine maintenance, which is tenant's responsibility.",
+      "expected_level": "GREEN"
+    },
+    {
+      "id": "T07",
+      "text": "The agreement shall be renewed annually upon mutual consent.",
+      "expected_level": "GREEN"
+    },
+    {
+      "id": "T08",
+      "text": "Any dispute arising from this agreement shall be settled through arbitration in a neutral city.",
+      "expected_level": "GREEN"
+    }
+  ]
+}
