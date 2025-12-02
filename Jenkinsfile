@@ -1,4 +1,5 @@
 pipeline {
+
     agent any
 
     environment {
@@ -10,11 +11,17 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
-                // Linux: show files
                 sh 'ls -la'
+            }
+        }
+
+        stage('Build & Sanity Test') {
+            steps {
+                sh 'echo "Skipping sanity tests inside Jenkins — handled within Docker."'
             }
         }
 
@@ -44,12 +51,13 @@ pipeline {
                     gcloud auth activate-service-account --key-file=\$GOOGLE_APPLICATION_CREDENTIALS
                     gcloud config set project ${PROJECT_ID}
                     gcloud config set run/region ${REGION}
+
                     gcloud run deploy ${SERVICE_NAME} \
-                      --image ${IMAGE}:latest \
-                      --region ${REGION} \
-                      --platform managed \
-                      --allow-unauthenticated \
-                      --port 5055
+                        --image ${IMAGE}:latest \
+                        --region ${REGION} \
+                        --platform managed \
+                        --allow-unauthenticated \
+                        --port 5055
                     """
                 }
             }
