@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DocScanner - Login</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+    <div class="container auth-container fade-in">
+      <h1 class="neon-text" style="text-align: center; margin-bottom: 2rem">
+        DocScanner
+      </h1>
+
+      <div class="card">
+        <h2 style="text-align: center">Welcome Back</h2>
+        <p style="text-align: center; color: #888; margin-bottom: 2rem">
+          Securely analyze your legal documents
+        </p>
+
+        <form id="loginForm">
+          <div class="form-group">
+            <input
+              type="email"
+              id="email"
+              placeholder="Email Address"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <input
+              type="password"
+              id="password"
+              placeholder="Password"
+              required
+            />
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="loginBtn">
+            Login
+          </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 1.5rem">
+          <p>Don't have an account?</p>
+          <a
+            href="/static/signup.html"
+            style="color: var(--accent-color); text-decoration: none"
+            >Create Account</a
+          >
+        </div>
+
+        <div id="error-msg" class="error-banner"></div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { auth } from "/static/js/firebase-config.js";
+      import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const email = document.getElementById("email").value;
+          const password = document.getElementById("password").value;
+          const errorMsg = document.getElementById("error-msg");
+          const btn = document.getElementById("loginBtn");
+
+          btn.disabled = true;
+          btn.textContent = "Logging in...";
+          errorMsg.style.display = "none";
+          errorMsg.classList.remove("shake-animation");
+
+          // --- Developer Bypass ---
+          if (email === "dev@clauseclear.com" && password === "dev123") {
+            sessionStorage.setItem("dev_bypass", "true");
+            window.location.href = "/static/home.html";
+            return;
+          }
+
+          try {
+            await signInWithEmailAndPassword(auth, email, password);
+            window.location.href = "/static/home.html";
+          } catch (error) {
+            console.error(error);
+
+            // User-friendly error mapping
+            let msg = "Login failed. Please try again.";
+            if (
+              error.code === "auth/invalid-credential" ||
+              error.code === "auth/user-not-found" ||
+              error.code === "auth/wrong-password"
+            ) {
+              msg = "Invalid email or password.";
+            } else if (error.code === "auth/too-many-requests") {
+              msg = "Too many failed attempts. Try again later.";
+            }
+
+            errorMsg.textContent = msg;
+            errorMsg.style.display = "flex";
+            errorMsg.style.justifyContent = "center";
+            errorMsg.style.alignItems = "center";
+
+            // Trigger reflow to restart animation
+            void errorMsg.offsetWidth;
+            errorMsg.classList.add("shake-animation");
+
+            btn.disabled = false;
+            btn.textContent = "Login";
+          }
+        });
+    </script>
+  </body>
+</html>

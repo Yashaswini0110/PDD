@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DocScanner - Payment</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+    <div class="container auth-container fade-in">
+      <h1 class="neon-text" style="text-align: center; margin-bottom: 2rem">
+        Secure Payment
+      </h1>
+
+      <div class="card">
+        <h2 style="text-align: center">Complete Purchase</h2>
+        <p style="text-align: center; color: #888; margin-bottom: 1.5rem">
+          Total: ₹499.00
+        </p>
+
+        <div class="tabs" style="display: flex; gap: 10px; margin-bottom: 1rem">
+          <button
+            class="btn"
+            id="tab-upi"
+            onclick="switchTab('upi')"
+            style="flex: 1; background: var(--accent-color); color: black"
+          >
+            UPI
+          </button>
+          <button
+            class="btn"
+            id="tab-card"
+            onclick="switchTab('card')"
+            style="flex: 1; border-color: #333; color: #888"
+          >
+            Card
+          </button>
+        </div>
+
+        <form id="paymentForm">
+          <!-- UPI Section -->
+          <div id="upi-section">
+            <input
+              type="text"
+              id="upiId"
+              placeholder="Enter UPI ID (e.g. name@okhdfcbank)"
+            />
+            <p style="font-size: 0.8rem; color: #666; margin-bottom: 1rem">
+              Verify on your app
+            </p>
+          </div>
+
+          <!-- Card Section -->
+          <div id="card-section" style="display: none">
+            <input
+              type="text"
+              id="cardNumber"
+              placeholder="Card Number"
+              maxlength="16"
+            />
+            <div style="display: flex; gap: 10px">
+              <input
+                type="text"
+                id="expiry"
+                placeholder="MM/YY"
+                maxlength="5"
+              />
+              <input type="password" id="cvv" placeholder="CVV" maxlength="3" />
+            </div>
+            <input type="text" id="cardName" placeholder="Name on Card" />
+          </div>
+
+          <div
+            id="error-msg"
+            style="
+              color: var(--error-color);
+              text-align: center;
+              margin-bottom: 1rem;
+            "
+          ></div>
+
+          <button type="submit" class="btn btn-primary" id="payBtn">
+            Pay & Signup
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      let currentMethod = "upi";
+
+      function switchTab(method) {
+        currentMethod = method;
+        document.getElementById("upi-section").style.display =
+          method === "upi" ? "block" : "none";
+        document.getElementById("card-section").style.display =
+          method === "card" ? "block" : "none";
+
+        // Toggle Button Styles
+        const activeStyle =
+          "flex: 1; background: var(--accent-color); color: black; border-color: var(--accent-color);";
+        const inactiveStyle =
+          "flex: 1; background: transparent; color: #888; border-color: #333;";
+
+        document.getElementById("tab-upi").style.cssText =
+          method === "upi" ? activeStyle : inactiveStyle;
+        document.getElementById("tab-card").style.cssText =
+          method === "card" ? activeStyle : inactiveStyle;
+      }
+
+      document.getElementById("paymentForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const msg = document.getElementById("error-msg");
+        msg.textContent = "";
+
+        if (currentMethod === "upi") {
+          const upi = document.getElementById("upiId").value;
+          if (!upi.includes("@")) {
+            msg.textContent = "Invalid UPI ID.";
+            return;
+          }
+        } else {
+          const num = document.getElementById("cardNumber").value;
+          const cvv = document.getElementById("cvv").value;
+          if (num.length !== 16 || isNaN(num)) {
+            msg.textContent = "Invalid Card Number.";
+            return;
+          }
+          if (cvv.length !== 3 || isNaN(cvv)) {
+            msg.textContent = "Invalid CVV.";
+            return;
+          }
+        }
+
+        // Mock Success
+        const btn = document.getElementById("payBtn");
+        btn.disabled = true;
+        btn.textContent = "Processing...";
+
+        setTimeout(() => {
+          alert("Payment Successful!");
+          window.location.href = "/static/index.html"; // Push back to Login as requested
+        }, 1500);
+      });
+
+      // Expose switchTab globally
+      window.switchTab = switchTab;
+    </script>
+  </body>
+</html>

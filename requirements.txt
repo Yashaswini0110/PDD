@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+loguru
+PyPDF2
+scikit-learn
+joblib
+requests
+reportlab
+pymongo
+firebase-admin
+python-multipart
+python-dotenv
