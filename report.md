@@ -46,9 +46,11 @@ The main flow follows this pipeline:
 - Calculates risk scores and assigns GREEN/YELLOW/RED levels based on thresholds
 - Returns structured results with risk level, score, and reasons
 
-**`services/llm_explainer.py`** - Calls Google Gemini API to rewrite rule-based answers into simple language:
+**`services/llm_explainer.py`** - Calls Google Gemini API (via REST) to rewrite rule-based answers into simple language:
+- Uses Gemini API endpoint: `https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent`
 - Takes the base answer from the severity engine and top matching clauses
 - Sends a carefully crafted prompt to Gemini with system instructions for 8th-grade explanations
+- Uses API key authentication (not Vertex AI SDK)
 - Returns plain-English text that explains what the clause means in everyday terms
 - Falls back to base_answer if API key is missing or API call fails
 
@@ -73,13 +75,14 @@ The main flow follows this pipeline:
 - `GET /users/{uid}/history` - Get user's job history from MongoDB
 - `POST /analyze/{job_id}/clauses` - Run severity analysis on all clauses
 
-## LLM Explanation Layer (Gemini)
+## LLM Explanation Layer (Gemini API)
 
 The `/query_llm/{job_id}` endpoint enhances the standard query flow by adding a Gemini-powered explanation layer. Here's how it works:
 
 1. **Reuses existing pipeline**: First runs the same TF-IDF search and severity scoring as `/query/{job_id}`
 2. **Builds context**: Collects top-k matching clauses with their risk levels, scores, and reasons
-3. **Calls Gemini API**: Sends a structured prompt with:
+3. **Calls Gemini API (REST)**: Makes HTTP POST request to `https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent` with:
+   - API key authentication via `x-goog-api-key` header
    - System instruction: "Explain rental terms in simple, everyday language like helping a friend"
    - User message: The query, matched clause text, and risk level
    - Constraints: Must only use information from the provided clauses, no invention
@@ -87,7 +90,9 @@ The `/query_llm/{job_id}` endpoint enhances the standard query flow by adding a 
    - `base_answer`: Rule-based technical explanation
    - `answer_llm`: Gemini-generated, 8th-grade friendly explanation
 
-**Important**: Gemini is used ONLY to rewrite existing explanations into simpler language. It does not invent new clauses or add information not present in the document. If the document doesn't clearly answer the question, the LLM is instructed to say so.
+**Important**: Gemini API is used ONLY to rewrite existing explanations into simpler language. It does not invent new clauses or add information not present in the document. If the document doesn't clearly answer the question, the LLM is instructed to say so.
+
+**Note**: This implementation uses Gemini API via REST (not Vertex AI SDK), making it simpler to deploy and manage.
 
 **Environment Variables**:
 - `GEMINI_API_KEY` - Required for LLM features (falls back to base_answer if missing)
@@ -242,6 +247,6 @@ After deployment, check the Cloud Run service:
 - **English Only**: No multilingual support; contracts in Hindi or other Indian languages are not supported
 - **Basic UI**: Frontend is functional but could benefit from richer UX, better mobile responsiveness, and more interactive visualizations
 - **No PDF Export**: Users cannot export analysis results as PDF reports (only JSON data available)
-- **Ephemeral Storage**: Uploaded files and embeddings are stored locally and lost on container restart; Cloud Storage integration would provide persistence
+- **Ephemeral Storage**: Uploaded files and embeddings are stored locally (`storage/uploads/`, `embeddings/`) and lost on container restart; persistent cloud storage integration would provide better durability
 - **Limited Legal KB**: Knowledge base has basic rules; expanding with more India-specific regulations (RERA, consumer protection laws) would improve accuracy
 - **No Multi-Document Support**: Users can only analyze one document at a time; batch processing or comparison features would be valuable

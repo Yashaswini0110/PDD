@@ -19,7 +19,7 @@ ClauseClear is a web application designed to demystify legal contracts. Users ca
 
 ## Architecture Overview
 
-The backend is a FastAPI application deployed on Google Cloud Run. It leverages Google Cloud Document AI for parsing PDF documents, Vertex AI Gemini for generating clause summaries and powering the Q&A feature, and a custom Severity Engine with rule-based logic. Temporarily stores documents in Google Cloud Storage. The frontend is a single-page application built with HTML, CSS, and JavaScript, providing an intuitive user interface for document uploads and result visualization.
+The backend is a FastAPI application deployed on Google Cloud Run. It uses PyPDF2 for parsing PDF documents, Google Gemini API (via REST) for generating simple explanations, and a custom Severity Engine with rule-based logic. Documents are temporarily stored in local file system (storage/uploads/). The frontend is a single-page application built with HTML, CSS, and JavaScript, providing an intuitive user interface for document uploads and result visualization.
 
 ### System Architecture
 
@@ -27,13 +27,12 @@ The backend is a FastAPI application deployed on Google Cloud Run. It leverages 
 flowchart LR
     User -->|Upload PDF| Frontend
     Frontend -->|Send file| Backend[FastAPI App]
-    Backend -->|Store temporarily| GCS[(Cloud Storage)]
-    Backend -->|Parse| DocAI[(Document AI)]
-    Backend -->|Summaries + Q&A| Gemini[(Vertex AI Gemini)]
+    Backend -->|Store locally| Storage[(Local Storage)]
+    Backend -->|Parse| PyPDF2[PyPDF2]
+    Backend -->|Simple explanations| Gemini[(Gemini API)]
     Backend --> SeverityEngine[(Severity Rules)]
     Backend -->|JSON response| Frontend
     Frontend -->|Show flags & answers| User
-    Backend -->|Delete or auto-expire| GCS
 ```
 
 ## Diagrams
@@ -47,7 +46,7 @@ For more detailed architectural and workflow diagrams, please refer to the [Syst
 
 ## Tech Stack
 
-*   **Backend:** FastAPI, Python, Google Cloud Run, Google Cloud Document AI, Vertex AI Gemini, Google Cloud Storage, `scikit-learn` (for TF-IDF).
+*   **Backend:** FastAPI, Python, Google Cloud Run, PyPDF2 (PDF parsing), Google Gemini API (REST), `scikit-learn` (for TF-IDF), MongoDB (optional).
 *   **Frontend:** HTML, CSS, JavaScript (static files served by FastAPI).
 *   **CI/CD:** Jenkins, Docker, Google Cloud Artifact Registry (potential for GitHub Actions integration).
 
@@ -79,10 +78,11 @@ For more detailed architectural and workflow diagrams, please refer to the [Syst
     pip install -r requirements.txt
     ```
 4.  **Set Environment Variables:**
-    Create a `.env` file in the `PDD/` directory (if it doesn't exist) and add necessary environment variables, such as API keys or configuration settings for Google Cloud services (e.g., `GOOGLE_APPLICATION_CREDENTIALS`).
+    Create a `.env` file in the project root (if it doesn't exist) and add necessary environment variables:
     ```
-    # Example (adjust as needed for your specific setup)
-    # GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/service-account-key.json
+    GEMINI_API_KEY=your_gemini_api_key_here
+    MONGO_URI=mongodb://localhost:27017
+    GEMINI_MODEL_NAME=gemini-2.0-flash
     ```
 5.  **Run the FastAPI Server:**
     ```bash
