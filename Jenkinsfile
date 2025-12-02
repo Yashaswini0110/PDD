@@ -2,10 +2,11 @@ pipeline {
     agent any
 
     environment {
-        PROJECT_ID   = 'productdesigndev'        // your GCP project
-        REGION       = 'us-central1'             // region you chose
-        REPO_NAME    = 'clauseclear'             // Artifact Registry repo
-        SERVICE_NAME = 'clauseclear-backend'     // Cloud Run service
+        PROJECT_ID   = 'productdesigndev'        // GCP project ID
+        REGION       = 'us-central1'             // Region
+        REPO_NAME    = 'clauseclear'             // Artifact Registry repo name
+        SERVICE_NAME = 'clauseclear-backend'     // Cloud Run service name
+
         IMAGE        = "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}"
     }
 
