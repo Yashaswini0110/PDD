@@ -2,6 +2,42 @@
 
 This document provides visual explanations of the ClauseClear system's key workflows and architecture using Mermaid diagrams.
 
+## Simple App Workflow (for non-technical users)
+
+This diagram shows what happens when a user uploads a rental agreement PDF and asks questions about it.
+
+```mermaid
+flowchart LR
+    U[User<br/>uploads PDF & asks question] --> F[Web App Frontend<br/>(Ask the AI Lawyer)]
+    F --> B[Backend API (FastAPI)]
+
+    B --> UP[1. Store file<br/>in uploads/]
+    B --> PP[2. Read PDF & split into clauses]
+    B --> IDX[3. Build search index<br/>(TF-IDF)]
+    B --> SEV[4. Check each clause<br/>with rule-based risk engine]
+    B --> LLM[5. Ask Gemini to explain<br/>in simple language]
+
+    SEV --> LLM
+    IDX --> LLM
+
+    LLM --> A[Answer shown to user<br/>(simple 8th-grade English)]
+```
+
+## How the Code Goes Live (Jenkins + Cloud Run)
+
+This diagram shows how our code goes from GitHub → Jenkins → Google Cloud Run.
+
+```mermaid
+flowchart LR
+    DEV[Developer<br/>pushes code to GitHub] --> JEN[Jenkins CI/CD server]
+
+    JEN --> BLD[Build Docker image<br/>(backend + app)]
+    BLD --> AR[Push image to<br/>Artifact Registry]
+    AR --> CR[Deploy image to<br/>Cloud Run service]
+
+    CR --> USR[Users open website<br/>and use the app]
+```
+
 ## End-to-End Flow (User → Backend → LLM → Result)
 
 This diagram shows the complete flow from user upload through PDF parsing, clause extraction, indexing, querying, and LLM-powered explanation.

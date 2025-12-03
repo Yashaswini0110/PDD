@@ -39,10 +39,13 @@ flowchart LR
 
 For more detailed architectural and workflow diagrams, please refer to the [System Diagrams](docs/diagrams.md) document.
 
+**Simple diagrams for non-technical readers**: see [docs/diagrams.md](docs/diagrams.md) and [docs/all_diagrams.md](docs/all_diagrams.md) for easy, visual explanations of how the app works and how Jenkins deploys it to Cloud Run.
+
 ## Documentation
 
 *   [Detailed project report](report.md) - Comprehensive documentation of the project architecture, backend pipeline, LLM integration, and DevOps setup
 *   [Architecture diagrams (Mermaid)](docs/diagrams.md) - Visual Mermaid diagrams for end-to-end flow, severity engine workflow, and CI/CD pipeline
+*   [All diagrams in one place](docs/all_diagrams.md) - Complete collection of all system diagrams (simple and technical)
 
 ## Tech Stack
 
