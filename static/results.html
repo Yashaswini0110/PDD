@@ -187,14 +187,15 @@
       let currentUid = "dev-user";
 
       // Auth Check with Developer Bypass
-      onAuthStateChanged(auth, async (user) => {
-        if (!user && !sessionStorage.getItem("dev_bypass")) {
-          window.location.href = "/static/index.html";
-          return;
-        }
+      if (auth) {
+        onAuthStateChanged(auth, async (user) => {
+          if (!user && !sessionStorage.getItem("dev_bypass")) {
+            window.location.href = "/static/index.html";
+            return;
+          }
 
-        // Load basic avatar info
-        currentUid = user ? user.uid : "dev-user";
+          // Load basic avatar info
+          currentUid = user ? user.uid : "dev-user";
         try {
           const resp = await fetch(`/users/${currentUid}`);
           if (resp.ok) {

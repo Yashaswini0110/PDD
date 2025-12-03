@@ -104,28 +104,36 @@
       let currentUid = null;
 
       // Auth Check
-      onAuthStateChanged(auth, async (user) => {
-        if (!user && !sessionStorage.getItem("dev_bypass")) {
-          window.location.href = "/static/index.html";
-          return;
-        }
-
-        currentUid = user ? user.uid : "dev-user";
-
-        // Load Avatar
-        try {
-          const resp = await fetch(`/users/${currentUid}`);
-          if (resp.ok) {
-            const userData = await resp.json();
-            document.getElementById("userAvatar").textContent =
-              userData.firstName.charAt(0).toUpperCase();
+      if (auth) {
+        onAuthStateChanged(auth, async (user) => {
+          if (!user && !sessionStorage.getItem("dev_bypass")) {
+            window.location.href = "/static/index.html";
+            return;
           }
-        } catch (e) {
-          console.error(e);
-        }
 
+          currentUid = user ? user.uid : "dev-user";
+
+          // Load Avatar
+          try {
+            const resp = await fetch(`/users/${currentUid}`);
+            if (resp.ok) {
+              const userData = await resp.json();
+              document.getElementById("userAvatar").textContent =
+                userData.firstName.charAt(0).toUpperCase();
+            }
+          } catch (e) {
+            console.error(e);
+          }
+
+          loadUploads();
+        });
+      } else {
+        // Firebase not configured - allow dev bypass
+        console.warn("Firebase not configured. Using dev mode.");
+        sessionStorage.setItem("dev_bypass", "true");
+        currentUid = "dev-user";
         loadUploads();
-      });
+      }
 
       async function loadUploads() {
         try {

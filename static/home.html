@@ -122,13 +122,14 @@
       let currentUid = null;
 
       // Auth Check
-      onAuthStateChanged(auth, async (user) => {
-        if (!user && !sessionStorage.getItem("dev_bypass")) {
-          window.location.href = "/static/index.html";
-          return;
-        }
+      if (auth) {
+        onAuthStateChanged(auth, async (user) => {
+          if (!user && !sessionStorage.getItem("dev_bypass")) {
+            window.location.href = "/static/index.html";
+            return;
+          }
 
-        currentUid = user ? user.uid : "dev-user";
+          currentUid = user ? user.uid : "dev-user";
 
         // Load Avatar
         try {
@@ -142,8 +143,21 @@
           console.error(e);
         }
 
-        loadHistory();
-      });
+          loadHistory();
+        });
+      } else {
+        // Firebase not configured - allow dev bypass
+        console.warn("Firebase not configured. Using dev mode.");
+        if (sessionStorage.getItem("dev_bypass")) {
+          currentUid = "dev-user";
+          loadHistory();
+        } else {
+          // Set dev bypass automatically for development
+          sessionStorage.setItem("dev_bypass", "true");
+          currentUid = "dev-user";
+          loadHistory();
+        }
+      }
 
       async function loadHistory() {
         try {

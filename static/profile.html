@@ -183,14 +183,15 @@
       let currentUser = null;
 
       // Auth Check & Load Profile
-      onAuthStateChanged(auth, async (user) => {
-        if (!user && !sessionStorage.getItem("dev_bypass")) {
-          window.location.href = "/static/index.html";
-          return;
-        }
+      if (auth) {
+        onAuthStateChanged(auth, async (user) => {
+          if (!user && !sessionStorage.getItem("dev_bypass")) {
+            window.location.href = "/static/index.html";
+            return;
+          }
 
-        currentUser = user;
-        const uid = user ? user.uid : "dev-user";
+          currentUser = user;
+            const uid = user ? user.uid : "dev-user";
 
         try {
           const resp = await fetch(`/users/${uid}`);
