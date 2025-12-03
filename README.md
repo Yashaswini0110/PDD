@@ -68,6 +68,7 @@ For more detailed architectural and workflow diagrams, please refer to the [Syst
     git clone https://github.com/Yashaswini0110/PDD.git
     cd PDD
     ```
+    Note: The repository root contains all files (no nested PDD/ folder).
 2.  **Set up a Virtual Environment:**
     ```bash
     python -m venv .venv
@@ -95,15 +96,15 @@ For more detailed architectural and workflow diagrams, please refer to the [Syst
 
 ### Frontend Setup
 
-The frontend consists of static HTML, CSS, and JavaScript files located in `PDD/static/`. These are served directly by the FastAPI backend. No separate build step is required for basic local development.
+The frontend consists of static HTML, CSS, and JavaScript files located in `static/`. These are served directly by the FastAPI backend. No separate build step is required for basic local development.
 
-To access the frontend, once the backend is running, navigate your browser to `http://localhost:5055/static/index.html`.
+To access the frontend, once the backend is running, navigate your browser to `http://localhost:5055/static/index.html` or simply `http://localhost:5055/` (which serves the index page).
 
 ## Deployment (Cloud Run + Jenkins)
 
 This project is designed for deployment on Google Cloud Run with a Jenkins-driven CI/CD pipeline.
 
-1.  **Docker Image Build:** A Docker image is built from the `PDD/Dockerfile` within this repository.
+1.  **Docker Image Build:** A Docker image is built from the `Dockerfile` at the repository root.
 2.  **Image Push:** The built Docker image is pushed to Google Cloud Artifact Registry.
 3.  **Cloud Run Deployment:** A Google Cloud Run service (e.g., `clauseclear-backend`) is deployed using the image from Artifact Registry.
 4.  **Jenkins Pipeline:** The Jenkins pipeline is triggered on code pushes to the repository, automating the steps: `checkout` → `docker build` → `push to Artifact Registry` → `deploy to Cloud Run`.
