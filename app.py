@@ -14,6 +14,7 @@ from services.db import init_db, get_db
 from services.parse_pdf import extract_text_from_pdf
 from services.clauses import split_into_clauses
 from services.severity import analyze_clauses, score_clause
+from services.llm_explainer import explain_with_llm
 
 from time import perf_counter
 from uuid import uuid4
@@ -67,6 +68,10 @@ class UserProfile(BaseModel):
     dob: str
     phone: str
     address: str
+
+class QueryRequestModel(BaseModel):
+    query: str
+    top_k: int = 3
 
 @app.post("/users/register")
 def register_user(user: UserProfile):
@@ -123,7 +128,18 @@ def get_user(uid: str):
     
     user = db["users"].find_one({"uid": uid}, {"_id": 0})
     if not user:
-         raise HTTPException(status_code=404, detail="User not found")
+        # Return mock data for dev-user even if not in DB
+        if uid == "dev-user":
+            return {
+                "uid": uid,
+                "firstName": "Developer",
+                "lastName": "User",
+                "email": "dev@clauseclear.com",
+                "phone": "0000000000",
+                "address": "Mock Address",
+                "dob": "2000-01-01"
+            }
+        raise HTTPException(status_code=404, detail="User not found")
     return user
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -174,18 +190,35 @@ def status(job_id: str):
     if not jd.exists():
         return {"exists": False}
     files = [p.name for p in jd.iterdir() if p.is_file()]
+    size = sum(p.stat().st_size for p in jd.iterdir() if p.is_file())
+    created = (jd / "created_at.txt").read_text() if (jd / "created_at.txt").exists() else None
+    return {"exists": True, "bytes": size, "files": files, "created_at_iso": created}
+
 @app.post("/process/{job_id}/parse")
 def parse(job_id: str):
     job_dir = Path("storage/uploads") / job_id
     if not job_dir.exists():
         raise HTTPException(404, "job_id not found")
-    # find first PDF in folder
+    pdf_path = None
+    docx_path = None
+
     pdfs = list(job_dir.glob("*.pdf"))
-    if not pdfs:
-        raise HTTPException(400, "no PDF file found for job")
-    pdf_path = pdfs[0]
-    logger.info(f"parse_job job_id={job_id} pdf_path={pdf_path}")
-    pages = extract_text_from_pdf(pdf_path)
+    if pdfs:
+        pdf_path = pdfs[0]
+    else:
+        docxs = list(job_dir.glob("*.docx"))
+        if docxs:
+            docx_path = docxs[0]
+
+    if pdf_path:
+        logger.info(f"parse_job job_id={job_id} pdf_path={pdf_path}")
+        pages = extract_text_from_pdf(pdf_path)
+    elif docx_path:
+        # Placeholder for DOCX parsing - currently not implemented
+        raise HTTPException(status_code=400, detail="DOCX parsing is not yet implemented. Please upload a PDF file.")
+    else:
+        raise HTTPException(status_code=400, detail="No PDF or DOCX file found for this job.")
+
     logger.info(f"parse_job job_id={job_id} extracted_pages={len(pages)}")
     all_clauses = []
     for page_num, text in enumerate(pages, start=1):
@@ -205,9 +238,6 @@ def parse(job_id: str):
     }
     (job_dir / "clauses.json").write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
     return {"job_id": job_id, "pages": len(pages), "clauses_count": len(all_clauses)}
-    size = sum(p.stat().st_size for p in jd.iterdir() if p.is_file())
-    created = (jd / "created_at.txt").read_text() if (jd / "created_at.txt").exists() else None
-    return {"exists": True, "bytes": size, "files": files, "created_at_iso": created}
 
 @app.post("/rag/{job_id}/index")
 def rag_index(job_id: str):
@@ -354,60 +384,162 @@ def query_job(job_id: str, payload: dict):
     - attaches risk info for each match.
     - saves chat history to MongoDB
     """
-    query = (payload or {}).get("query", "").strip()
-    top_k = int((payload or {}).get("top_k", 5))
-    if not query:
-        raise HTTPException(status_code=400, detail="query is required")
-
-    job_dir = Path("storage/uploads") / job_id
-    clauses_path = job_dir / "clauses.json"
-    if not clauses_path.exists():
-        raise HTTPException(status_code=404, detail="clauses.json not found. Run /process/{job_id}/parse first.")
-
-    # load all clauses
-    data = json.loads(clauses_path.read_text(encoding="utf-8"))
-    clauses = data.get("clauses", [])
-
     try:
-        # use existing TF-IDF search helper
-        results = tfidf_search(job_id, query, clauses, top_k=top_k)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="RAG index not built. Call /rag/{job_id}/index first.")
+        query = (payload or {}).get("query", "").strip()
+        top_k = int((payload or {}).get("top_k", 5))
+        if not query:
+            raise HTTPException(status_code=400, detail="query is required")
 
-    # `results` should be a list of dicts with at least: id, page, text, score
-    enriched_matches = []
-    for r in results:
-        # Find the original clause using its ID to ensure we have all original metadata
-        original_clause = next((c for c in clauses if c.get("id") == r.get("id")), None)
-        if original_clause:
-            risk = score_clause(original_clause) # Pass the whole clause dict
-            enriched_matches.append({
-                "id": original_clause.get("id"),
-                "page": original_clause.get("page"),
-                "text": original_clause.get("text"),
-                "score": r.get("score"),
-                **risk,
-            })
+        job_dir = Path("storage/uploads") / job_id
+        clauses_path = job_dir / "clauses.json"
+        if not clauses_path.exists():
+            raise HTTPException(status_code=404, detail="clauses.json not found. Run /process/{job_id}/parse first.")
 
-    answer = build_answer_for_query(query, enriched_matches)
+        # load all clauses
+        data = json.loads(clauses_path.read_text(encoding="utf-8"))
+        clauses = data.get("clauses", [])
 
-    # Save chat to DB
-    db = get_db()
-    if db is not None:
-        db["jobs"].update_one(
-            {"job_id": job_id},
-            {"$push": {"chat_history": {"query": query, "answer": answer, "timestamp": datetime.now(timezone.utc).isoformat()}}}
-        )
+        if not clauses:
+            raise HTTPException(status_code=404, detail="No clauses found. Run /process/{job_id}/parse first.")
 
-    logger.info(f"query_ok job_id={job_id} q={query!r} top_k={top_k} returned={len(enriched_matches)}")
+        try:
+            # use existing TF-IDF search helper
+            results = tfidf_search(job_id, query, clauses, top_k=top_k)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail="RAG index not built. Call /rag/{job_id}/index first.")
 
-    return {
-        "job_id": job_id,
-        "query": query,
-        "top_k": top_k,
-        "answer": answer,
-        "matches": enriched_matches,
-    }
+        # `results` should be a list of dicts with at least: id, page, text, score
+        enriched_matches = []
+        for r in results:
+            # Find the original clause using its ID to ensure we have all original metadata
+            clause_id = r.get("id")
+            if not clause_id:
+                continue
+            original_clause = next((c for c in clauses if c.get("id") == clause_id), None)
+            if original_clause:
+                try:
+                    risk = score_clause(original_clause) # Pass the whole clause dict
+                    enriched_matches.append({
+                        "id": original_clause.get("id"),
+                        "page": original_clause.get("page"),
+                        "text": original_clause.get("text"),
+                        "score": r.get("score", 0.0),
+                        **risk,
+                    })
+                except Exception as e:
+                    logger.warning(f"Error scoring clause {clause_id}: {e}")
+                    # Continue with other clauses even if one fails
+
+        answer = build_answer_for_query(query, enriched_matches)
+
+        # Save chat to DB
+        db = get_db()
+        if db is not None:
+            try:
+                db["jobs"].update_one(
+                    {"job_id": job_id},
+                    {"$push": {"chat_history": {"query": query, "answer": answer, "timestamp": datetime.now(timezone.utc).isoformat()}}}
+                )
+            except Exception as e:
+                logger.warning(f"Failed to save chat history: {e}")
+
+        logger.info(f"query_ok job_id={job_id} q={query!r} top_k={top_k} returned={len(enriched_matches)}")
+
+        return {
+            "job_id": job_id,
+            "query": query,
+            "top_k": top_k,
+            "answer": answer,
+            "matches": enriched_matches,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error in query_job for job_id={job_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@app.post("/query_llm/{job_id}")
+def query_llm(job_id: str, payload: QueryRequestModel):
+    """
+    LLM-powered query endpoint:
+    - Reuses TF-IDF + severity engine from /query/{job_id}
+    - Then calls Gemini (LLM) to rewrite the result in simple, tenant-friendly language
+    """
+    try:
+        query = payload.query.strip()
+        top_k = payload.top_k
+        if not query:
+            raise HTTPException(status_code=400, detail="query is required")
+
+        job_dir = Path("storage/uploads") / job_id
+        clauses_path = job_dir / "clauses.json"
+        if not clauses_path.exists():
+            raise HTTPException(status_code=404, detail="clauses.json not found. Run /process/{job_id}/parse first.")
+
+        # load all clauses
+        data = json.loads(clauses_path.read_text(encoding="utf-8"))
+        clauses = data.get("clauses", [])
+
+        if not clauses:
+            raise HTTPException(status_code=404, detail="No clauses found. Run /process/{job_id}/parse first.")
+
+        try:
+            # use existing TF-IDF search helper
+            results = tfidf_search(job_id, query, clauses, top_k=top_k)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail="RAG index not built. Call /rag/{job_id}/index first.")
+
+        # `results` should be a list of dicts with at least: id, page, text, score
+        enriched_matches = []
+        for r in results:
+            # Find the original clause using its ID to ensure we have all original metadata
+            clause_id = r.get("id")
+            if not clause_id:
+                continue
+            original_clause = next((c for c in clauses if c.get("id") == clause_id), None)
+            if original_clause:
+                try:
+                    risk = score_clause(original_clause) # Pass the whole clause dict
+                    enriched_matches.append({
+                        "id": original_clause.get("id"),
+                        "page": original_clause.get("page"),
+                        "text": original_clause.get("text"),
+                        "score": r.get("score", 0.0),
+                        **risk,
+                    })
+                except Exception as e:
+                    logger.warning(f"Error scoring clause {clause_id}: {e}")
+                    # Continue with other clauses even if one fails
+
+        # Build base_answer using existing function
+        base_answer = build_answer_for_query(query, enriched_matches)
+
+        # If matches is empty, do not call LLM
+        if not enriched_matches:
+            answer_llm = "Your document does not clearly talk about this topic. I couldn't find a specific clause about it."
+        else:
+            # Call LLM to generate simple explanation
+            try:
+                answer_llm = explain_with_llm(query, enriched_matches, base_answer)
+            except Exception as e:
+                logger.warning(f"Error calling LLM explainer: {e}, using base_answer")
+                answer_llm = base_answer
+
+        logger.info(f"query_llm_ok job_id={job_id} q={query!r} returned={len(enriched_matches)}")
+
+        return {
+            "job_id": job_id,
+            "query": query,
+            "top_k": top_k,
+            "base_answer": base_answer,
+            "answer_llm": answer_llm,
+            "matches": enriched_matches,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error in query_llm for job_id={job_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.get("/analyze/{job_id}/chat")
 def get_job_chat(job_id: str):

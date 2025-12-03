@@ -47,13 +47,21 @@ def search(job_id: str, query: str, clauses: list[dict], top_k: int = 5) -> list
     top_k = max(1, int(top_k))
     idxs = scores.argsort()[::-1][:top_k]
 
+    # Build a lookup dict by clause ID for safe matching
+    clauses_by_id = {c.get("id"): c for c in clauses}
+
     out = []
     for i in idxs:
-        c = clauses[i]
-        out.append({
-            "id": c["id"],
-            "page": c["page"],
-            "text": c["text"],
-            "score": float(scores[i]),
-        })
+        # Use meta to get the ID, then look up in clauses dict
+        if i < len(meta):
+            meta_item = meta[i]
+            clause_id = meta_item.get("id")
+            c = clauses_by_id.get(clause_id)
+            if c:
+                out.append({
+                    "id": c.get("id", "N/A"),
+                    "page": c.get("page", meta_item.get("page", "N/A")),
+                    "text": c.get("text", ""),
+                    "score": float(scores[i]),
+                })
     return out

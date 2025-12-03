@@ -9,4 +9,5 @@ COPY . .
 
 ENV PORT=5055
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5055"]
+# Use PORT env var for Cloud Run compatibility (Cloud Run sets PORT dynamically)
+CMD sh -c "uvicorn app:app --host 0.0.0.0 --port ${PORT:-5055}"

@@ -39,7 +39,11 @@ pipeline {
 
         stage('Deploy to Cloud Run') {
             steps {
-                withCredentials([file(credentialsId: 'gcp-sa-json', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                withCredentials([
+                    file(credentialsId: 'gcp-sa-json', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                    string(credentialsId: 'gemini-api-key', variable: 'GEMINI_API_KEY'),
+                    string(credentialsId: 'mongo-uri', variable: 'MONGO_URI')
+                ]) {
                     sh '''
                         gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
                         gcloud config set project ${PROJECT_ID}
@@ -49,7 +53,8 @@ pipeline {
                           --region ${REGION} \
                           --platform managed \
                           --allow-unauthenticated \
-                          --port 5055
+                          --port 5055 \
+                          --set-env-vars GEMINI_API_KEY=${GEMINI_API_KEY},MONGO_URI=${MONGO_URI},GEMINI_MODEL_NAME=gemini-2.0-flash
                     '''
                 }
             }

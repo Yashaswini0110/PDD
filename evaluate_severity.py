@@ -1,8 +1,6 @@
 import json
 from collections import defaultdict
 from pathlib import Path
-# No need to modify sys.path if run from PDD directory or PDD is in PYTHONPATH
-# The knowledge base loader already handles its path relative to itself.
 
 from services.kb_loader import load_kb
 from services.severity import score_clause

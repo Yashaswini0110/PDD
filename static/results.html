@@ -209,7 +209,14 @@
 
         // Load analysis after we have the UID
         loadAnalysis();
-      });
+        });
+      } else {
+        // Firebase not configured - allow dev bypass
+        console.warn("Firebase not configured. Using dev mode.");
+        sessionStorage.setItem("dev_bypass", "true");
+        currentUid = "dev-user";
+        loadAnalysis();
+      }
 
       document.getElementById("logoutBtn").addEventListener("click", () => {
         if (sessionStorage.getItem("dev_bypass")) {

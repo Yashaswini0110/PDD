@@ -1,5 +1,9 @@
 from pathlib import Path
 import re
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def safe_filename(filename: str) -> str:
     """Sanitizes a filename to contain only alphanumeric, dashes, and dots."""
@@ -12,3 +16,11 @@ def ensure_dirs():
     Path("storage/uploads").mkdir(parents=True, exist_ok=True)
     Path("embeddings").mkdir(parents=True, exist_ok=True)
     Path("logs").mkdir(parents=True, exist_ok=True)
+
+def get_gcp_config():
+    """Get GCP configuration from environment variables."""
+    return {
+        "project_id": os.getenv("GCP_PROJECT_ID"),
+        "location": os.getenv("GCP_LOCATION", "us-central1"),
+        "model_name": os.getenv("GEMINI_MODEL_NAME", "gemini-1.5-flash"),
+    }
