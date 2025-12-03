@@ -27,20 +27,20 @@ This diagram shows the technical components and how they interact.
 
 ```mermaid
 flowchart TB
-    FE[Frontend (HTML/CSS/JS)] --> API[FastAPI Backend]
+    FE["Frontend (HTML/CSS/JS)"] --> API["FastAPI Backend"]
 
-    API --> UP[/File Uploads/]
-    API --> PDF[PDF Parser]
-    PDF --> CLAUSE[Clause Extractor]
+    API --> UP["File Uploads"]
+    API --> PDF["PDF Parser"]
+    PDF --> CLAUSE["Clause Extractor"]
 
-    CLAUSE --> TFIDF[TF-IDF Vector Index]
+    CLAUSE --> TFIDF["TF-IDF Vector Index"]
     CLAUSE --> RISK["Severity Engine (Rule-based detector)"]
 
-    API --> LLM[Gemini LLM Explainer]
+    API --> LLM["Gemini LLM Explainer"]
     TFIDF --> LLM
     RISK --> LLM
 
-    LLM --> RESP[Response returned to user]
+    LLM --> RESP["Response returned to user"]
 ```
 
 ## 3. CI/CD Pipeline (Jenkins → Artifact Registry → Cloud Run)
@@ -68,7 +68,7 @@ flowchart TB
     C[Extracted Clause] --> CLEAN[Text Cleaning]
     CLEAN --> MATCH[Rule Matching]
     MATCH --> SCORE[Assign Risk Score]
-    SCORE --> LABEL[Label as GREEN / YELLOW / RED]
+    SCORE --> LABEL["Label as GREEN / YELLOW / RED"]
 ```
 
 ## 5. LLM Explanation Layer (Gemini)
