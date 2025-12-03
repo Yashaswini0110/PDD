@@ -39,22 +39,21 @@ pipeline {
 
         stage('Deploy to Cloud Run') {
             steps {
-                withCredentials([
-                    file(credentialsId: 'gcp-sa-json', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
-                    string(credentialsId: 'gemini-api-key', variable: 'GEMINI_API_KEY'),
-                    string(credentialsId: 'mongo-uri', variable: 'MONGO_URI')
-                ]) {
+                withCredentials([file(credentialsId: 'gcp-sa-json', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                     sh '''
                         gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
                         gcloud config set project ${PROJECT_ID}
                         gcloud config set run/region ${REGION}
+                        
+                        # Deploy with minimal env vars (credentials can be added later via Cloud Run console)
+                        # If you have gemini-api-key and mongo-uri credentials in Jenkins, uncomment the withCredentials block below
                         gcloud run deploy ${SERVICE_NAME} \
                           --image ${IMAGE}:latest \
                           --region ${REGION} \
                           --platform managed \
                           --allow-unauthenticated \
                           --port 5055 \
-                          --set-env-vars GEMINI_API_KEY=${GEMINI_API_KEY},MONGO_URI=${MONGO_URI},GEMINI_MODEL_NAME=gemini-2.0-flash
+                          --set-env-vars GEMINI_MODEL_NAME=gemini-2.0-flash
                     '''
                 }
             }
