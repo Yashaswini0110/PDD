@@ -8,19 +8,19 @@ This diagram shows what happens when a user uploads a rental agreement PDF and a
 
 ```mermaid
 flowchart LR
-    U[User<br/>uploads PDF & asks question] --> F[Web App Frontend<br/>(Ask the AI Lawyer)]
-    F --> B[Backend API (FastAPI)]
+    U["User uploads PDF & asks question"] --> F["Web App Frontend (Ask the AI Lawyer)"]
+    F --> B["Backend API (FastAPI)"]
 
-    B --> UP[1. Store file<br/>in uploads/]
-    B --> PP[2. Read PDF & split into clauses]
-    B --> IDX[3. Build search index<br/>(TF-IDF)]
-    B --> SEV[4. Check each clause<br/>with rule-based risk engine]
-    B --> LLM[5. Ask Gemini to explain<br/>in simple language]
+    B --> UP["1. Store file in uploads/"]
+    B --> PP["2. Read PDF & split into clauses"]
+    B --> IDX["3. Build search index (TF-IDF)"]
+    B --> SEV["4. Check each clause with rule-based risk engine"]
+    B --> LLM["5. Ask Gemini to explain in simple language"]
 
     SEV --> LLM
     IDX --> LLM
 
-    LLM --> A[Answer shown to user<br/>(simple 8th-grade English)]
+    LLM --> A["Answer shown to user (simple 8th-grade English)"]
 ```
 
 ## How the Code Goes Live (Jenkins + Cloud Run)
@@ -29,13 +29,13 @@ This diagram shows how our code goes from GitHub → Jenkins → Google Cloud Ru
 
 ```mermaid
 flowchart LR
-    DEV[Developer<br/>pushes code to GitHub] --> JEN[Jenkins CI/CD server]
+    DEV["Developer pushes code to GitHub"] --> JEN["Jenkins CI/CD server"]
 
-    JEN --> BLD[Build Docker image<br/>(backend + app)]
-    BLD --> AR[Push image to<br/>Artifact Registry]
-    AR --> CR[Deploy image to<br/>Cloud Run service]
+    JEN --> BLD["Build Docker image (backend + app)"]
+    BLD --> AR["Push image to Artifact Registry"]
+    AR --> CR["Deploy image to Cloud Run service"]
 
-    CR --> USR[Users open website<br/>and use the app]
+    CR --> USR["Users open website and use the app"]
 ```
 
 ## End-to-End Flow (User → Backend → LLM → Result)

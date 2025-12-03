@@ -6,19 +6,19 @@ This diagram shows what happens when a user uploads a rental agreement PDF and a
 
 ```mermaid
 flowchart LR
-    U[User uploads PDF<br/>and asks a question] --> F[Frontend Web App]
-    F --> API[Backend API (FastAPI)]
+    U["User uploads PDF and asks a question"] --> F["Frontend Web App"]
+    F --> API["Backend API (FastAPI)"]
 
-    API --> STORE[1. Save file]
-    API --> PARSE[2. Extract clauses from PDF]
-    API --> INDEX[3. Create search index (TF-IDF)]
-    API --> RISK[4. Apply rule-based risk scoring]
-    API --> LLM[5. Ask Gemini for simple explanation]
+    API --> STORE["1. Save file"]
+    API --> PARSE["2. Extract clauses from PDF"]
+    API --> INDEX["3. Create search index (TF-IDF)"]
+    API --> RISK["4. Apply rule-based risk scoring"]
+    API --> LLM["5. Ask Gemini for simple explanation"]
 
     RISK --> LLM
     INDEX --> LLM
 
-    LLM --> OUT[Final answer shown to the user<br/>(simple 8th-grade English)]
+    LLM --> OUT["Final answer shown to the user (simple 8th-grade English)"]
 ```
 
 ## 2. Backend Architecture (Technical Overview)
@@ -34,7 +34,7 @@ flowchart TB
     PDF --> CLAUSE[Clause Extractor]
 
     CLAUSE --> TFIDF[TF-IDF Vector Index]
-    CLAUSE --> RISK[Severity Engine<br/>(Rule-based detector)]
+    CLAUSE --> RISK["Severity Engine (Rule-based detector)"]
 
     API --> LLM[Gemini LLM Explainer]
     TFIDF --> LLM
@@ -49,14 +49,14 @@ This diagram shows how code changes are automatically deployed to production.
 
 ```mermaid
 flowchart LR
-    DEV[Developer pushes code<br/>to GitHub] --> JEN[Jenkins Pipeline]
+    DEV["Developer pushes code to GitHub"] --> JEN["Jenkins Pipeline"]
 
-    JEN --> BUILD[Build Docker Image]
-    BUILD --> PUSH[Push to Artifact Registry]
+    JEN --> BUILD["Build Docker Image"]
+    BUILD --> PUSH["Push to Artifact Registry"]
 
-    PUSH --> DEPLOY[Deploy to Cloud Run]
+    PUSH --> DEPLOY["Deploy to Cloud Run"]
 
-    DEPLOY --> USERS[Users access the live application]
+    DEPLOY --> USERS["Users access the live application"]
 ```
 
 ## 4. Severity Engine Workflow
