@@ -5,13 +5,8 @@ import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-EMB_ROOT = Path("/tmp/embeddings")
-# Create directory in /tmp for Cloud Run compatibility (wrapped in try/except to prevent crashes)
-try:
-    EMB_ROOT.mkdir(parents=True, exist_ok=True)
-except (OSError, PermissionError):
-    # Directory creation failed, but app should continue - directories may be created later if needed
-    pass
+EMB_ROOT = Path("embeddings")
+EMB_ROOT.mkdir(parents=True, exist_ok=True)
 
 def _paths(job_id: str):
     base = EMB_ROOT / f"{job_id}"

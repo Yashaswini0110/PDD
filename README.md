@@ -18,7 +18,7 @@ ClauseClear is a web application designed to demystify legal contracts. Users ca
 
 ## Architecture Overview
 
-The backend is a FastAPI application deployed on Google Cloud Run. It leverages Google Cloud Document AI for parsing PDF documents, Vertex AI Gemini for generating clause summaries and powering the Q&A feature, and a custom Severity Engine with rule-based logic. Temporarily stores documents in Google Cloud Storage. The frontend is a single-page application built with HTML, CSS, and JavaScript, providing an intuitive user interface for document uploads and result visualization.
+The backend is a FastAPI application deployed on Google Cloud Run. It uses PyPDF2 for parsing PDF documents, Vertex AI Gemini (via API) for generating clause summaries and powering the Q&A feature, and a custom Severity Engine with rule-based logic. Temporarily stores documents in local storage (or Google Cloud Storage in production). The frontend is a single-page application built with HTML, CSS, and JavaScript, providing an intuitive user interface for document uploads and result visualization.
 
 ### System Architecture
 
@@ -26,13 +26,13 @@ The backend is a FastAPI application deployed on Google Cloud Run. It leverages 
 flowchart LR
     User -->|Upload PDF| Frontend
     Frontend -->|Send file| Backend[FastAPI App]
-    Backend -->|Store temporarily| GCS[(Cloud Storage)]
-    Backend -->|Parse| DocAI[(Document AI)]
+    Backend -->|Store temporarily| Storage[(Local/Cloud Storage)]
+    Backend -->|Parse| PyPDF2[(PyPDF2 Parser)]
     Backend -->|Summaries + Q&A| Gemini[(Vertex AI Gemini)]
     Backend --> SeverityEngine[(Severity Rules)]
     Backend -->|JSON response| Frontend
     Frontend -->|Show flags & answers| User
-    Backend -->|Delete or auto-expire| GCS
+    Backend -->|Delete or auto-expire| Storage
 ```
 
 ## Diagrams
@@ -41,9 +41,27 @@ For more detailed architectural and workflow diagrams, please refer to the [Syst
 
 ## Tech Stack
 
-*   **Backend:** FastAPI, Python, Google Cloud Run, Google Cloud Document AI, Vertex AI Gemini, Google Cloud Storage, `scikit-learn` (for TF-IDF).
+*   **Backend:** FastAPI, Python, Google Cloud Run, PyPDF2 (for PDF text extraction), Vertex AI Gemini (via API), `scikit-learn` (for TF-IDF), MongoDB (for job history).
 *   **Frontend:** HTML, CSS, JavaScript (static files served by FastAPI).
 *   **CI/CD:** Jenkins, Docker, Google Cloud Artifact Registry (potential for GitHub Actions integration).
+
+## How It Works
+
+1. PDF upload: User uploads a PDF via the frontend.
+2. Text extraction: `services/parse_pdf.py` uses PyPDF2 to extract text page by page.
+3. Clause splitting: `services/clauses.py` splits the text into clauses (sentences/phrases).
+4. TF-IDF indexing: `services/tfidf_index.py` builds a searchable index of clauses.
+5. Query processing: When a user asks a question:
+   - TF-IDF finds the most relevant clauses
+   - `services/severity.py` scores each clause for risk (GREEN/YELLOW/RED)
+   - The LLM (`services/llm_explainer.py`) rewrites the answer in simple language
+6. Response: The frontend displays the answer with risk flags and clause citations.
+
+## Current Implementation Notes
+
+- **PDF Parsing:** Uses PyPDF2 for text extraction. Works well for text-based PDFs; may struggle with scanned PDFs or complex layouts. Debugging logs have been added to track extracted text.
+- **Storage:** Documents are temporarily stored in local storage (`storage/uploads/`) during processing.
+- **Text Extraction:** The system extracts text page-by-page and splits it into clauses for analysis.
 
 ## Getting Started (Local Development)
 
@@ -73,11 +91,16 @@ For more detailed architectural and workflow diagrams, please refer to the [Syst
     pip install -r requirements.txt
     ```
 4.  **Set Environment Variables:**
-    Create a `.env` file in the `PDD/` directory (if it doesn't exist) and add necessary environment variables, such as API keys or configuration settings for Google Cloud services (e.g., `GOOGLE_APPLICATION_CREDENTIALS`).
+    Create a `.env` file in the `PDD/` directory (if it doesn't exist) and add necessary environment variables:
     ```
-    # Example (adjust as needed for your specific setup)
-    # GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/service-account-key.json
+    # Optional: For LLM-powered explanations (Gemini API)
+    GEMINI_API_KEY=your_gemini_api_key_here
+    GEMINI_MODEL_NAME=gemini-2.0-flash
+    
+    # Optional: For MongoDB job history storage
+    MONGO_URI=your_mongodb_connection_string_here
     ```
+    Note: The system will work without these variables, but LLM explanations and job history features will be disabled.
 5.  **Run the FastAPI Server:**
     ```bash
     python -m uvicorn app:app --host 0.0.0.0 --port 5055 --reload

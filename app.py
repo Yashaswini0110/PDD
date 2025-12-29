@@ -1,5 +1,4 @@
 import os
-import sys
 from pathlib import Path
 import json
 
@@ -20,38 +19,16 @@ from services.llm_explainer import explain_with_llm
 from time import perf_counter
 from uuid import uuid4
 from datetime import datetime, timezone
-from utils import safe_filename
+from utils import safe_filename, ensure_dirs
 
 # --- init ---
-# Create directories in /tmp for Cloud Run compatibility (read-only filesystem)
-# Make directory creation optional - app should not crash if it fails
-try:
-    Path("/tmp/storage/uploads").mkdir(parents=True, exist_ok=True)
-    Path("/tmp/embeddings").mkdir(parents=True, exist_ok=True)
-except (OSError, PermissionError) as e:
-    # Log warning but continue - directories may be created later if needed
-    pass
-
-# Use stdout for logging (Cloud Run compatible - logs to container logs)
+ensure_dirs()
 logger.remove()
-logger.add(
-    sys.stdout,
-    level="INFO",
-    format='{{"time":"{time:YYYY-MM-DDTHH:mm:ss.SSSZ}","level":"{level}","msg":"{message}"}}'
-)
+logger.add("logs/app.log", level="INFO",
+           rotation="5 MB", retention=5,
+           format='{{"time":"{time:YYYY-MM-DDTHH:mm:ss.SSSZ}","level":"{level}","msg":"{message}"}}')
 
 load_dotenv()
-
-# Validate required environment variables at startup
-# Cloud Run detection: K_SERVICE is set by Cloud Run (more reliable than PORT)
-is_cloud_run = os.getenv("K_SERVICE") is not None
-if is_cloud_run:
-    gemini_key = os.getenv("GEMINI_API_KEY")
-    if not gemini_key:
-        logger.error("FATAL: GEMINI_API_KEY environment variable is required in Cloud Run but is not set")
-        logger.error("Please configure GEMINI_API_KEY in Cloud Run environment variables")
-        sys.exit(1)
-
 app = FastAPI(title="ClauseClear Mini", version="0.1.0")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -195,7 +172,7 @@ async def upload(file: UploadFile = File(...)):
         raise HTTPException(400, f"Only {sorted(ALLOWED)} allowed")
 
     job_id = str(uuid4())
-    job_dir = Path("/tmp/storage/uploads") / job_id
+    job_dir = Path("storage/uploads") / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
     (job_dir / "created_at.txt").write_text(datetime.now(timezone.utc).isoformat())
     (job_dir / fname).write_bytes(raw)
@@ -209,7 +186,7 @@ async def upload(file: UploadFile = File(...)):
 
 @app.get("/files/{job_id}/status")
 def status(job_id: str):
-    jd = Path("/tmp/storage/uploads") / job_id
+    jd = Path("storage/uploads") / job_id
     if not jd.exists():
         return {"exists": False}
     files = [p.name for p in jd.iterdir() if p.is_file()]
@@ -219,7 +196,7 @@ def status(job_id: str):
 
 @app.post("/process/{job_id}/parse")
 def parse(job_id: str):
-    job_dir = Path("/tmp/storage/uploads") / job_id
+    job_dir = Path("storage/uploads") / job_id
     if not job_dir.exists():
         raise HTTPException(404, "job_id not found")
     pdf_path = None
@@ -247,11 +224,15 @@ def parse(job_id: str):
     for page_num, text in enumerate(pages, start=1):
         clauses = split_into_clauses(text)
         for i, clause in enumerate(clauses, start=1):
+            clause_id = f"P{page_num:02d}_C{i:03d}"
             all_clauses.append({
-                "id": f"P{page_num:02d}_C{i:03d}",
+                "id": clause_id,
                 "page": page_num,
                 "text": clause
             })
+            # Debug: Log clauses with rent/deposit info
+            if any(term in clause.lower() for term in ['rent', 'deposit', 'advance']):
+                logger.info(f"Clause {clause_id}: {clause[:150]}...")
     logger.info(f"parse_job job_id={job_id} total_clauses={len(all_clauses)}")
     out = {
         "job_id": job_id,
@@ -264,7 +245,7 @@ def parse(job_id: str):
 
 @app.post("/rag/{job_id}/index")
 def rag_index(job_id: str):
-    job_dir = Path("/tmp/storage/uploads") / job_id
+    job_dir = Path("storage/uploads") / job_id
     cj = job_dir / "clauses.json"
     if not cj.exists():
         raise HTTPException(404, "clauses.json not found. Run /process/{job_id}/parse first.")
@@ -280,7 +261,7 @@ def rag_search(job_id: str, payload: dict):
     if not query:
         raise HTTPException(400, "query is required")
 
-    job_dir = Path("/tmp/storage/uploads") / job_id
+    job_dir = Path("storage/uploads") / job_id
     cj = job_dir / "clauses.json"
     if not cj.exists():
         raise HTTPException(404, "clauses.json not found. Run /process/{job_id}/parse first.")
@@ -300,7 +281,7 @@ def analyze_job_clauses(job_id: str, uid: str = "dev-user"):
     save analysis.json, and return basic stats + enriched clauses.
     Also saves the job summary to MongoDB for the user history.
     """
-    job_dir = Path("/tmp/storage/uploads") / job_id
+    job_dir = Path("storage/uploads") / job_id
     cj = job_dir / "clauses.json"
     if not cj.exists():
         raise HTTPException(status_code=404, detail="clauses.json not found. Run /process/{job_id}/parse first.")
@@ -412,7 +393,7 @@ def query_job(job_id: str, payload: dict):
     if not query:
         raise HTTPException(status_code=400, detail="query is required")
 
-    job_dir = Path("/tmp/storage/uploads") / job_id
+    job_dir = Path("storage/uploads") / job_id
     clauses_path = job_dir / "clauses.json"
     if not clauses_path.exists():
         raise HTTPException(status_code=404, detail="clauses.json not found. Run /process/{job_id}/parse first.")
@@ -474,7 +455,7 @@ async def query_llm(job_id: str, payload: QueryRequestModel):
     if not query:
         raise HTTPException(status_code=400, detail="query is required")
 
-    job_dir = Path("/tmp/storage/uploads") / job_id
+    job_dir = Path("storage/uploads") / job_id
     clauses_path = job_dir / "clauses.json"
     if not clauses_path.exists():
         raise HTTPException(status_code=404, detail="clauses.json not found. Run /process/{job_id}/parse first.")
