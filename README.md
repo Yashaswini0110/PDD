@@ -6,19 +6,19 @@ Many individuals in India enter into rental agreements and loan contracts withou
 
 ## Solution
 
-ClauseClear is a web application designed to demystify legal contracts. Users can upload a contract PDF, and the system will provide clause-by-clause summaries in plain English, flag clauses with Green, Yellow, or Red severity indicators based on India-specific rules, and offer a Q&A feature with evidence from the document. A downloadable report with a "Not legal advice" banner is available, and user privacy is ensured through temporary storage and a "Delete Now" option.
+ClauseClear is a web application designed to demystify legal contracts. Users can upload a contract PDF, and the system will analyze clauses with Green, Yellow, or Red severity indicators based on India-specific rules, and offer an interactive Q&A feature with evidence from the document.
 
 ## Key Features
 
-*   Clause-by-clause summaries in plain English
-*   Severity scoring (Green/Yellow/Red) with India-specific rules
-*   Q&A with exact clause citations from the document
-*   Exportable report (PDF/HTML) for easy review
-*   Privacy features: temporary storage and a user-triggered delete-now endpoint
+*   Clause analysis with severity scoring (Green/Yellow/Red) based on India-specific rules
+*   Interactive Q&A chat interface for asking questions about the contract
+*   Simple, 8th-grade level explanations powered by Gemini LLM
+*   Exact clause citations with page numbers for transparency
+*   Risk assessment summary showing overall contract health
 
 ## Architecture Overview
 
-The backend is a FastAPI application deployed on Google Cloud Run. It uses PyPDF2 for parsing PDF documents, Vertex AI Gemini (via API) for generating clause summaries and powering the Q&A feature, and a custom Severity Engine with rule-based logic. Temporarily stores documents in local storage (or Google Cloud Storage in production). The frontend is a single-page application built with HTML, CSS, and JavaScript, providing an intuitive user interface for document uploads and result visualization.
+The backend is a FastAPI application deployed on Google Cloud Run. It uses PyPDF2 for parsing PDF documents, Vertex AI Gemini (via API) for generating clause summaries and powering the Q&A feature, and a custom Severity Engine with rule-based logic. Documents are stored in local storage during processing. The frontend is a single-page application built with HTML, CSS, and JavaScript, providing an intuitive user interface for document uploads and result visualization.
 
 ### System Architecture
 
@@ -26,18 +26,17 @@ The backend is a FastAPI application deployed on Google Cloud Run. It uses PyPDF
 flowchart LR
     User -->|Upload PDF| Frontend
     Frontend -->|Send file| Backend[FastAPI App]
-    Backend -->|Store temporarily| Storage[(Local/Cloud Storage)]
+    Backend -->|Store| Storage[(Local Storage)]
     Backend -->|Parse| PyPDF2[(PyPDF2 Parser)]
     Backend -->|Summaries + Q&A| Gemini[(Vertex AI Gemini)]
     Backend --> SeverityEngine[(Severity Rules)]
     Backend -->|JSON response| Frontend
     Frontend -->|Show flags & answers| User
-    Backend -->|Delete or auto-expire| Storage
 ```
 
 ## Diagrams
 
-For more detailed architectural and workflow diagrams, please refer to the [System Diagrams](PDD/docs/diagrams.md) document.
+For more detailed architectural and workflow diagrams, please refer to the [System Diagrams](docs/diagrams.md) document. You can also view [All Diagrams](docs/all_diagrams.md) for a comprehensive overview.
 
 ## Tech Stack
 
