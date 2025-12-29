@@ -45,9 +45,9 @@ pipeline {
                         # Wait for container to be ready
                         sleep 8
                         
-                        # Get dynamically assigned host port
+                        # Get dynamically assigned host port and trim whitespace
                         PORT_MAPPING=$(docker port $CONTAINER_ID 5055/tcp)
-                        HOST_PORT=$(echo $PORT_MAPPING | cut -d: -f2)
+                        HOST_PORT=$(echo $PORT_MAPPING | cut -d: -f2 | tr -d '[:space:]')
                         echo "Container is accessible on host port: $HOST_PORT"
                         
                         # Test health endpoint using dynamic port (no space between port and /health)
