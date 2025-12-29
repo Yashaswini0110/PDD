@@ -10,4 +10,3 @@ pymongo
 firebase-admin
 python-multipart
 python-dotenv
-google-cloud-aiplatform>=1.38.0

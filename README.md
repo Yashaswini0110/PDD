@@ -13,13 +13,12 @@ ClauseClear is a web application designed to demystify legal contracts. Users ca
 *   Clause-by-clause summaries in plain English
 *   Severity scoring (Green/Yellow/Red) with India-specific rules
 *   Q&A with exact clause citations from the document
-*   Gemini-powered 8th-grade explanations via `/query_llm/{job_id}` endpoint for simple, tenant-friendly language
 *   Exportable report (PDF/HTML) for easy review
 *   Privacy features: temporary storage and a user-triggered delete-now endpoint
 
 ## Architecture Overview
 
-The backend is a FastAPI application deployed on Google Cloud Run. It uses PyPDF2 for parsing PDF documents, Google Gemini API (via REST) for generating simple explanations, and a custom Severity Engine with rule-based logic. Documents are temporarily stored in local file system (storage/uploads/). The frontend is a single-page application built with HTML, CSS, and JavaScript, providing an intuitive user interface for document uploads and result visualization.
+The backend is a FastAPI application deployed on Google Cloud Run. It leverages Google Cloud Document AI for parsing PDF documents, Vertex AI Gemini for generating clause summaries and powering the Q&A feature, and a custom Severity Engine with rule-based logic. Temporarily stores documents in Google Cloud Storage. The frontend is a single-page application built with HTML, CSS, and JavaScript, providing an intuitive user interface for document uploads and result visualization.
 
 ### System Architecture
 
@@ -27,29 +26,22 @@ The backend is a FastAPI application deployed on Google Cloud Run. It uses PyPDF
 flowchart LR
     User -->|Upload PDF| Frontend
     Frontend -->|Send file| Backend[FastAPI App]
-    Backend -->|Store locally| Storage[(Local Storage)]
-    Backend -->|Parse| PyPDF2[PyPDF2]
-    Backend -->|Simple explanations| Gemini[(Gemini API)]
+    Backend -->|Store temporarily| GCS[(Cloud Storage)]
+    Backend -->|Parse| DocAI[(Document AI)]
+    Backend -->|Summaries + Q&A| Gemini[(Vertex AI Gemini)]
     Backend --> SeverityEngine[(Severity Rules)]
     Backend -->|JSON response| Frontend
     Frontend -->|Show flags & answers| User
+    Backend -->|Delete or auto-expire| GCS
 ```
 
 ## Diagrams
 
-For more detailed architectural and workflow diagrams, please refer to the [System Diagrams](docs/diagrams.md) document.
-
-**Simple diagrams for non-technical readers**: see [docs/diagrams.md](docs/diagrams.md) and [docs/all_diagrams.md](docs/all_diagrams.md) for easy, visual explanations of how the app works and how Jenkins deploys it to Cloud Run.
-
-## Documentation
-
-*   [Detailed project report](report.md) - Comprehensive documentation of the project architecture, backend pipeline, LLM integration, and DevOps setup
-*   [Architecture diagrams (Mermaid)](docs/diagrams.md) - Visual Mermaid diagrams for end-to-end flow, severity engine workflow, and CI/CD pipeline
-*   [All diagrams in one place](docs/all_diagrams.md) - Complete collection of all system diagrams (simple and technical)
+For more detailed architectural and workflow diagrams, please refer to the [System Diagrams](PDD/docs/diagrams.md) document.
 
 ## Tech Stack
 
-*   **Backend:** FastAPI, Python, Google Cloud Run, PyPDF2 (PDF parsing), Google Gemini API (REST), `scikit-learn` (for TF-IDF), MongoDB (optional).
+*   **Backend:** FastAPI, Python, Google Cloud Run, Google Cloud Document AI, Vertex AI Gemini, Google Cloud Storage, `scikit-learn` (for TF-IDF).
 *   **Frontend:** HTML, CSS, JavaScript (static files served by FastAPI).
 *   **CI/CD:** Jenkins, Docker, Google Cloud Artifact Registry (potential for GitHub Actions integration).
 
@@ -68,7 +60,6 @@ For more detailed architectural and workflow diagrams, please refer to the [Syst
     git clone https://github.com/Yashaswini0110/PDD.git
     cd PDD
     ```
-    Note: The repository root contains all files (no nested PDD/ folder).
 2.  **Set up a Virtual Environment:**
     ```bash
     python -m venv .venv
@@ -82,11 +73,10 @@ For more detailed architectural and workflow diagrams, please refer to the [Syst
     pip install -r requirements.txt
     ```
 4.  **Set Environment Variables:**
-    Create a `.env` file in the project root (if it doesn't exist) and add necessary environment variables:
+    Create a `.env` file in the `PDD/` directory (if it doesn't exist) and add necessary environment variables, such as API keys or configuration settings for Google Cloud services (e.g., `GOOGLE_APPLICATION_CREDENTIALS`).
     ```
-    GEMINI_API_KEY=your_gemini_api_key_here
-    MONGO_URI=mongodb://localhost:27017
-    GEMINI_MODEL_NAME=gemini-2.0-flash
+    # Example (adjust as needed for your specific setup)
+    # GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/service-account-key.json
     ```
 5.  **Run the FastAPI Server:**
     ```bash
@@ -96,15 +86,15 @@ For more detailed architectural and workflow diagrams, please refer to the [Syst
 
 ### Frontend Setup
 
-The frontend consists of static HTML, CSS, and JavaScript files located in `static/`. These are served directly by the FastAPI backend. No separate build step is required for basic local development.
+The frontend consists of static HTML, CSS, and JavaScript files located in `PDD/static/`. These are served directly by the FastAPI backend. No separate build step is required for basic local development.
 
-To access the frontend, once the backend is running, navigate your browser to `http://localhost:5055/static/index.html` or simply `http://localhost:5055/` (which serves the index page).
+To access the frontend, once the backend is running, navigate your browser to `http://localhost:5055/static/index.html`.
 
 ## Deployment (Cloud Run + Jenkins)
 
 This project is designed for deployment on Google Cloud Run with a Jenkins-driven CI/CD pipeline.
 
-1.  **Docker Image Build:** A Docker image is built from the `Dockerfile` at the repository root.
+1.  **Docker Image Build:** A Docker image is built from the `PDD/Dockerfile` within this repository.
 2.  **Image Push:** The built Docker image is pushed to Google Cloud Artifact Registry.
 3.  **Cloud Run Deployment:** A Google Cloud Run service (e.g., `clauseclear-backend`) is deployed using the image from Artifact Registry.
 4.  **Jenkins Pipeline:** The Jenkins pipeline is triggered on code pushes to the repository, automating the steps: `checkout` → `docker build` → `push to Artifact Registry` → `deploy to Cloud Run`.

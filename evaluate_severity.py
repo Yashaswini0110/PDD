@@ -1,16 +1,16 @@
 import json
 from collections import defaultdict
 from pathlib import Path
+# No need to modify sys.path if run from PDD directory or PDD is in PYTHONPATH
+# The knowledge base loader already handles its path relative to itself.
 
 from services.kb_loader import load_kb
 from services.severity import score_clause
 
 def evaluate_severity_engine():
     # Load labeled clauses from the tests/ folder
-    # Use __file__ to get the script's directory, then navigate to tests/
     try:
-        base = Path(__file__).parent
-        labeled_data_path = base / "tests" / "labeled_clauses_sample.json"
+        labeled_data_path = Path("tests") / "labeled_clauses_sample.json" # Now relative to PDD
         with open(labeled_data_path, "r", encoding="utf-8") as f:
             labeled_data = json.load(f)
     except FileNotFoundError:

@@ -6,7 +6,7 @@ import sys
 import time
 
 BASE_URL = "http://127.0.0.1:5055"
-PDF_PATH = Path("sample.1.pdf")
+PDF_PATH = Path("sample.1.pdf") # Now relative to PDD directory
 
 def run_full_flow_test():
     print("=== Running full ClauseClear pipeline test ===")

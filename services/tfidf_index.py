@@ -5,8 +5,13 @@ import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-EMB_ROOT = Path("embeddings")
-EMB_ROOT.mkdir(parents=True, exist_ok=True)
+EMB_ROOT = Path("/tmp/embeddings")
+# Create directory in /tmp for Cloud Run compatibility (wrapped in try/except to prevent crashes)
+try:
+    EMB_ROOT.mkdir(parents=True, exist_ok=True)
+except (OSError, PermissionError):
+    # Directory creation failed, but app should continue - directories may be created later if needed
+    pass
 
 def _paths(job_id: str):
     base = EMB_ROOT / f"{job_id}"
@@ -47,21 +52,13 @@ def search(job_id: str, query: str, clauses: list[dict], top_k: int = 5) -> list
     top_k = max(1, int(top_k))
     idxs = scores.argsort()[::-1][:top_k]
 
-    # Build a lookup dict by clause ID for safe matching
-    clauses_by_id = {c.get("id"): c for c in clauses}
-
     out = []
     for i in idxs:
-        # Use meta to get the ID, then look up in clauses dict
-        if i < len(meta):
-            meta_item = meta[i]
-            clause_id = meta_item.get("id")
-            c = clauses_by_id.get(clause_id)
-            if c:
-                out.append({
-                    "id": c.get("id", "N/A"),
-                    "page": c.get("page", meta_item.get("page", "N/A")),
-                    "text": c.get("text", ""),
-                    "score": float(scores[i]),
-                })
+        c = clauses[i]
+        out.append({
+            "id": c["id"],
+            "page": c["page"],
+            "text": c["text"],
+            "score": float(scores[i]),
+        })
     return out
