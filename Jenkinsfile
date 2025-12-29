@@ -43,7 +43,7 @@ pipeline {
                         echo "Container started with ID: $CONTAINER_ID"
                         
                         # Wait for container to be ready
-                        sleep 5
+                        sleep 8
                         
                         # Get dynamically assigned host port
                         PORT_MAPPING=$(docker port $CONTAINER_ID 5055/tcp)
