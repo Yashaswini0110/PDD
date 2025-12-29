@@ -187,15 +187,14 @@
       let currentUid = "dev-user";
 
       // Auth Check with Developer Bypass
-      if (auth) {
-        onAuthStateChanged(auth, async (user) => {
-          if (!user && !sessionStorage.getItem("dev_bypass")) {
-            window.location.href = "/static/index.html";
-            return;
-          }
+      onAuthStateChanged(auth, async (user) => {
+        if (!user && !sessionStorage.getItem("dev_bypass")) {
+          window.location.href = "/static/index.html";
+          return;
+        }
 
-          // Load basic avatar info
-          currentUid = user ? user.uid : "dev-user";
+        // Load basic avatar info
+        currentUid = user ? user.uid : "dev-user";
         try {
           const resp = await fetch(`/users/${currentUid}`);
           if (resp.ok) {
@@ -209,14 +208,7 @@
 
         // Load analysis after we have the UID
         loadAnalysis();
-        });
-      } else {
-        // Firebase not configured - allow dev bypass
-        console.warn("Firebase not configured. Using dev mode.");
-        sessionStorage.setItem("dev_bypass", "true");
-        currentUid = "dev-user";
-        loadAnalysis();
-      }
+      });
 
       document.getElementById("logoutBtn").addEventListener("click", () => {
         if (sessionStorage.getItem("dev_bypass")) {
@@ -307,17 +299,10 @@
           });
           const data = await resp.json();
 
-          // Debug logging
-          console.log("LLM Response:", data);
-
-          // Use LLM answer with fallback to base_answer
-          const finalAnswer =
-            data.answer_llm && data.answer_llm.trim() !== ""
-              ? data.answer_llm
-              : data.base_answer;
-
           document.getElementById(loadingId).remove();
-          addMessage(finalAnswer, "ai-msg");
+          // Use answer_llm (simple explanation) instead of base_answer
+          const answer = data.answer_llm || data.base_answer || data.answer || "Sorry, I couldn't generate an answer.";
+          addMessage(answer, "ai-msg");
         } catch (error) {
           document.getElementById(loadingId).textContent =
             "Error: " + error.message;

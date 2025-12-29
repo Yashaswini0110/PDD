@@ -7,6 +7,10 @@ import json
 from typing import Optional
 from loguru import logger
 import requests
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # NOTE: This function rewrites /query results into simple 8th-grade language.
 # It must NOT invent new clauses. If in doubt, it should say the document
