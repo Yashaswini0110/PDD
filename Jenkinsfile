@@ -37,9 +37,6 @@ pipeline {
                         CONTAINER_ID=$(docker run -d -p 0:5055 ${IMAGE}:latest)
                         echo "Container started with ID: $CONTAINER_ID"
                         
-                        # Wait for container to be ready
-                        sleep 8
-                        
                         # Get dynamically assigned host port and trim whitespace
                         PORT_MAPPING=$(docker port $CONTAINER_ID 5055/tcp)
                         HOST_PORT=$(echo $PORT_MAPPING | cut -d: -f2 | tr -d '[:space:]')
@@ -49,11 +46,30 @@ pipeline {
                         HEALTH_URL="http://localhost:${HOST_PORT}/health"
                         echo "Health check URL: ${HEALTH_URL}"
                         
-                        # Test health endpoint using variable (prevents shell tokenization bugs)
-                        if curl -f "${HEALTH_URL}" 2>/dev/null; then
-                            echo "✓ Health check passed"
-                        else
-                            echo "⚠ Health check failed or endpoint not available"
+                        # Retry health check with exponential backoff (max 30 seconds)
+                        MAX_WAIT=30
+                        ELAPSED=0
+                        INTERVAL=1
+                        HEALTH_CHECK_PASSED=0
+                        
+                        echo "Waiting for application to be ready..."
+                        while [ $ELAPSED -lt $MAX_WAIT ]; do
+                            if curl -f "${HEALTH_URL}" 2>/dev/null; then
+                                echo "✓ Health check passed after ${ELAPSED} seconds"
+                                HEALTH_CHECK_PASSED=1
+                                break
+                            fi
+                            echo "Waiting... (${ELAPSED}s/${MAX_WAIT}s)"
+                            sleep $INTERVAL
+                            ELAPSED=$((ELAPSED + INTERVAL))
+                            # Exponential backoff: 1s, 2s, 4s, then 4s intervals
+                            if [ $INTERVAL -lt 4 ]; then
+                                INTERVAL=$((INTERVAL * 2))
+                            fi
+                        done
+                        
+                        if [ $HEALTH_CHECK_PASSED -eq 0 ]; then
+                            echo "⚠ Health check failed - application did not become ready within ${MAX_WAIT} seconds"
                             docker logs $CONTAINER_ID
                             exit 1
                         fi
