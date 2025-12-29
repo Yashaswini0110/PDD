@@ -50,8 +50,8 @@ pipeline {
                         HOST_PORT=$(echo $PORT_MAPPING | cut -d: -f2)
                         echo "Container is accessible on host port: $HOST_PORT"
                         
-                        # Test health endpoint using dynamic port
-                        if curl -f http://localhost:$HOST_PORT/health 2>/dev/null; then
+                        # Test health endpoint using dynamic port (no space between port and /health)
+                        if curl -f "http://localhost:${HOST_PORT}/health" 2>/dev/null; then
                             echo "✓ Health check passed"
                         else
                             echo "⚠ Health check failed or endpoint not available"
