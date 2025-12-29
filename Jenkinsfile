@@ -46,8 +46,9 @@ pipeline {
                         HEALTH_URL="http://localhost:${HOST_PORT}/health"
                         echo "Health check URL: ${HEALTH_URL}"
                         
-                        # Retry health check with exponential backoff (max 30 seconds)
-                        MAX_WAIT=30
+                        # Retry health check with exponential backoff (max 60 seconds)
+                        # Extended timeout to accommodate MongoDB connection timeout during startup
+                        MAX_WAIT=60
                         ELAPSED=0
                         INTERVAL=1
                         HEALTH_CHECK_PASSED=0
