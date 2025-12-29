@@ -38,15 +38,20 @@ pipeline {
                 script {
                     echo "Running basic container health check..."
                     sh '''
-                        # Start container in background
-                        CONTAINER_ID=$(docker run -d -p 5055:5055 ${IMAGE}:latest)
+                        # Start container in background with dynamic port binding
+                        CONTAINER_ID=$(docker run -d -p 0:5055 ${IMAGE}:latest)
                         echo "Container started with ID: $CONTAINER_ID"
                         
-                        # Wait for service to be ready
+                        # Wait for container to be ready
                         sleep 5
                         
-                        # Test health endpoint
-                        if curl -f http://localhost:5055/health 2>/dev/null; then
+                        # Get dynamically assigned host port
+                        PORT_MAPPING=$(docker port $CONTAINER_ID 5055/tcp)
+                        HOST_PORT=$(echo $PORT_MAPPING | cut -d: -f2)
+                        echo "Container is accessible on host port: $HOST_PORT"
+                        
+                        # Test health endpoint using dynamic port
+                        if curl -f http://localhost:$HOST_PORT/health 2>/dev/null; then
                             echo "✓ Health check passed"
                         else
                             echo "⚠ Health check failed or endpoint not available"
