@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    parameters {
-        booleanParam(name: 'DEPLOY_TO_CLOUD', defaultValue: false, description: 'Deploy to Cloud Run after build and test')
-    }
-
     environment {
         PROJECT_ID   = 'productdesigndev'        // GCP project ID
         REGION       = 'us-central1'             // Region
@@ -20,7 +16,6 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
-                sh 'ls -la'
             }
         }
 
@@ -50,8 +45,12 @@ pipeline {
                         HOST_PORT=$(echo $PORT_MAPPING | cut -d: -f2 | tr -d '[:space:]')
                         echo "Container is accessible on host port: $HOST_PORT"
                         
-                        # Test health endpoint using dynamic port (no space between port and /health)
-                        if curl -f "http://localhost:${HOST_PORT}/health" 2>/dev/null; then
+                        # Build health check URL to avoid tokenization issues
+                        HEALTH_URL="http://localhost:${HOST_PORT}/health"
+                        echo "Health check URL: ${HEALTH_URL}"
+                        
+                        # Test health endpoint using variable (prevents shell tokenization bugs)
+                        if curl -f "${HEALTH_URL}" 2>/dev/null; then
                             echo "✓ Health check passed"
                         else
                             echo "⚠ Health check failed or endpoint not available"
@@ -69,11 +68,6 @@ pipeline {
         }
 
         stage('Push to Artifact Registry') {
-            when {
-                expression { 
-                    return params.DEPLOY_TO_CLOUD == true
-                }
-            }
             steps {
                 script {
                     try {
@@ -94,7 +88,7 @@ pipeline {
                             '''
                         }
                     } catch (org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException e) {
-                        error("DEPLOY_TO_CLOUD is true but required credentials not found: ${e.getMessage()}. Please configure 'gcp-sa-json' and 'gemini-api-key' credentials or set DEPLOY_TO_CLOUD=false")
+                        error("Required credentials not found: ${e.getMessage()}. Please configure 'gcp-sa-json' and 'gemini-api-key' credentials")
                     } catch (Exception e) {
                         error("Failed to push to Artifact Registry: ${e.getMessage()}")
                     }
@@ -103,11 +97,6 @@ pipeline {
         }
 
         stage('Deploy to Cloud Run') {
-            when {
-                expression { 
-                    return params.DEPLOY_TO_CLOUD == true
-                }
-            }
             steps {
                 script {
                     try {
@@ -210,7 +199,6 @@ pipeline {
                                   --region ${REGION} \
                                   --platform managed \
                                   --allow-unauthenticated \
-                                  --port 5055 \
                                   $ENV_VARS
                                 
                                 echo "✓ Deployment completed successfully"
