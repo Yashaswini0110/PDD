@@ -295,10 +295,20 @@ def analyze_job_clauses(job_id: str, uid: str = "dev-user"):
     aj.write_text(json.dumps({"job_id": job_id, "clauses": analyzed}, ensure_ascii=False, indent=2), encoding="utf-8")
 
     summary = {"GREEN": 0, "YELLOW": 0, "RED": 0}
+    clauses_by_risk = {"GREEN": [], "YELLOW": [], "RED": []}
+    
     for c in analyzed:
         lvl = c.get("risk_level", "GREEN")
         if lvl in summary:
             summary[lvl] += 1
+            # Group clauses by risk level with only necessary fields
+            clauses_by_risk[lvl].append({
+                "clause_id": c.get("id"),
+                "page": c.get("page"),
+                "text": c.get("text"),
+                "risk_level": lvl,
+                "reasons": c.get("reasons", [])
+            })
 
     # Save to History (MongoDB)
     db = get_db()
@@ -328,7 +338,11 @@ def analyze_job_clauses(job_id: str, uid: str = "dev-user"):
         "job_id": job_id,
         "total_clauses": len(analyzed),
         "summary": summary,
-        "clauses": analyzed,
+        "clauses": {
+            "green": clauses_by_risk["GREEN"],
+            "yellow": clauses_by_risk["YELLOW"],
+            "red": clauses_by_risk["RED"]
+        }
     }
 
 @app.get("/users/{uid}/history")

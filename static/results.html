@@ -153,6 +153,24 @@
         </div>
       </div>
 
+      <!-- High Risk Clauses -->
+      <div class="card">
+        <h3 style="color: var(--error-color)">High Risk Clauses</h3>
+        <div id="redClauses"></div>
+      </div>
+
+      <!-- Medium Risk Clauses -->
+      <div class="card">
+        <h3 style="color: #d4a017">Medium Risk Clauses</h3>
+        <div id="yellowClauses"></div>
+      </div>
+
+      <!-- Safe Clauses -->
+      <div class="card">
+        <h3 style="color: var(--success-color)">Safe Clauses</h3>
+        <div id="greenClauses"></div>
+      </div>
+
       <!-- Chat Interface -->
       <div class="card">
         <h3>Ask the AI Lawyer</h3>
@@ -274,6 +292,57 @@
         const percentage = Math.min(Math.max(weightedScore, 0), 100);
 
         document.getElementById("riskMarker").style.left = `${percentage}%`;
+
+        // Display clauses grouped by risk level
+        renderClauses(data.clauses.red || [], "redClauses");
+        renderClauses(data.clauses.yellow || [], "yellowClauses");
+        renderClauses(data.clauses.green || [], "greenClauses");
+      }
+
+      function renderClauses(clauses, containerId) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+
+        if (clauses.length === 0) {
+          container.innerHTML = "<p style='color: #888; font-style: italic;'>No clauses in this category.</p>";
+          return;
+        }
+
+        clauses.forEach((clause) => {
+          const clauseDiv = document.createElement("div");
+          clauseDiv.style.cssText = "margin-bottom: 1.5rem; padding: 1rem; background: var(--input-bg); border-radius: 4px; border: 1px solid var(--border-color);";
+          
+          const clauseHeader = document.createElement("div");
+          clauseHeader.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;";
+          
+          const clauseId = document.createElement("span");
+          clauseId.style.cssText = "font-weight: bold; color: var(--text-color);";
+          clauseId.textContent = `Clause ${clause.clause_id} (Page ${clause.page})`;
+          clauseHeader.appendChild(clauseId);
+          
+          clauseDiv.appendChild(clauseHeader);
+          
+          const clauseText = document.createElement("p");
+          clauseText.style.cssText = "margin: 0.5rem 0; color: var(--text-color); line-height: 1.5;";
+          clauseText.textContent = clause.text;
+          clauseDiv.appendChild(clauseText);
+          
+          if (clause.reasons && clause.reasons.length > 0) {
+            const reasonsDiv = document.createElement("div");
+            reasonsDiv.style.cssText = "margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);";
+            const reasonsLabel = document.createElement("strong");
+            reasonsLabel.style.cssText = "color: var(--text-color); font-size: 0.9rem;";
+            reasonsLabel.textContent = "Explanation: ";
+            reasonsDiv.appendChild(reasonsLabel);
+            const reasonsText = document.createElement("span");
+            reasonsText.style.cssText = "color: #888; font-size: 0.9rem;";
+            reasonsText.textContent = clause.reasons.join(" ");
+            reasonsDiv.appendChild(reasonsText);
+            clauseDiv.appendChild(reasonsDiv);
+          }
+          
+          container.appendChild(clauseDiv);
+        });
       }
 
       // Chat Logic
