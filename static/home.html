@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DocScanner - Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=1" />
+  </head>
+  <body>
+    <div class="container fade-in">
+      <!-- Navbar -->
+      <nav class="navbar">
+        <div class="nav-left">
+          <div class="logo-circle">LOGO</div>
+          <a href="#" class="logo-text">DocScanner</a>
+        </div>
+
+        <div class="nav-right">
+          <a
+            href="/static/uploads.html"
+            style="
+              color: var(--text-color);
+              text-decoration: none;
+              font-weight: bold;
+            "
+            >My Uploads</a
+          >
+          <a
+            href="/static/profile.html"
+            class="profile-ring"
+            style="text-decoration: none"
+          >
+            <div class="avatar" id="userAvatar">U</div>
+          </a>
+          <button class="logout-icon" id="logoutBtn" title="Logout">
+            <!-- SVG Logout Icon -->
+            <svg
+              width="40"
+              height="40"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </nav>
+
+      <div style="text-align: center; margin-bottom: 2rem">
+        <h1>Upload Document</h1>
+        <p style="color: #888">Supported formats: PDF, Word (docx)</p>
+      </div>
+
+      <div class="card upload-area" id="dropZone">
+        <input
+          type="file"
+          id="fileInput"
+          accept=".pdf,.docx"
+          style="display: none"
+        />
+        <div style="font-size: 3rem; margin-bottom: 1rem">📂</div>
+        <h3>Drag & Drop or Click to Upload</h3>
+        <p
+          id="fileName"
+          style="margin-top: 1rem; color: var(--accent-color)"
+        ></p>
+      </div>
+
+      <div style="text-align: center; margin-top: 2rem">
+        <button
+          class="btn btn-primary"
+          id="analyzeBtn"
+          style="max-width: 300px"
+          disabled
+        >
+          Analyze Document
+        </button>
+      </div>
+
+      <div
+        id="status-msg"
+        style="text-align: center; margin-top: 1rem; color: #888"
+      ></div>
+
+      <!-- Recent Scans Section -->
+      <div id="recentScans" style="margin-top: 3rem; display: none">
+        <h3
+          style="
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 1rem;
+          "
+        >
+          Recent Scans
+        </h3>
+        <div
+          id="historyList"
+          style="
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+          "
+        >
+          <!-- History items will be injected here -->
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { auth } from "/static/js/firebase-config.js";
+      import {
+        signOut,
+        onAuthStateChanged,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+      let currentUid = null;
+
+      // Auth Check
+      if (auth) {
+        onAuthStateChanged(auth, async (user) => {
+          if (!user && !sessionStorage.getItem("dev_bypass")) {
+            window.location.href = "/static/index.html";
+            return;
+          }
+
+          currentUid = user ? user.uid : "dev-user";
+
+          // Load Avatar
+          try {
+            const resp = await fetch(`/users/${currentUid}`);
+            if (resp.ok) {
+              const userData = await resp.json();
+              document.getElementById("userAvatar").textContent =
+                userData.firstName.charAt(0).toUpperCase();
+            }
+          } catch (e) {
+            console.error(e);
+          }
+
+          loadHistory();
+        });
+      } else {
+        // Firebase not configured - allow dev bypass
+        console.warn("Firebase not configured. Using dev mode.");
+        if (sessionStorage.getItem("dev_bypass")) {
+          currentUid = "dev-user";
+          loadHistory();
+        } else {
+          // Set dev bypass automatically for development
+          sessionStorage.setItem("dev_bypass", "true");
+          currentUid = "dev-user";
+          loadHistory();
+        }
+      }
+
+      async function loadHistory() {
+        try {
+          const resp = await fetch(`/users/${currentUid}/history`);
+          if (!resp.ok) return;
+          const history = await resp.json();
+
+          if (history.length > 0) {
+            document.getElementById("recentScans").style.display = "block";
+            const list = document.getElementById("historyList");
+            list.innerHTML = history
+              .map(
+                (job) => `
+                        <div class="card" style="padding: 1rem; cursor: pointer; margin: 0;" onclick="location.href='/static/results.html?job_id=${
+                          job.job_id
+                        }'">
+                            <h4 style="color: var(--accent-color); margin-bottom: 0.5rem;">${
+                              job.filename
+                            }</h4>
+                            <p style="font-size: 0.8rem; color: #888;">${new Date(
+                              job.created_at
+                            ).toLocaleDateString()}</p>
+                            <div style="margin-top: 0.5rem; font-size: 0.8rem;">
+                                <span style="color: var(--error-color);">High: ${
+                                  job.analysis_summary?.RED || 0
+                                }</span> | 
+                                <span style="color: #b58900;">Med: ${
+                                  job.analysis_summary?.YELLOW || 0
+                                }</span>
+                            </div>
+                        </div>
+                    `
+              )
+              .join("");
+          }
+        } catch (e) {
+          console.error("Failed to load history", e);
+        }
+      }
+
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        if (sessionStorage.getItem("dev_bypass")) {
+          sessionStorage.removeItem("dev_bypass");
+          window.location.href = "/static/index.html";
+          return;
+        }
+        signOut(auth).then(() => (window.location.href = "/static/index.html"));
+      });
+
+      // File Upload Logic
+      const dropZone = document.getElementById("dropZone");
+      const fileInput = document.getElementById("fileInput");
+      const fileNameDisplay = document.getElementById("fileName");
+      const analyzeBtn = document.getElementById("analyzeBtn");
+      const statusMsg = document.getElementById("status-msg");
+
+      let selectedFile = null;
+
+      dropZone.addEventListener("click", () => fileInput.click());
+
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("dragover");
+      });
+
+      dropZone.addEventListener("dragleave", () =>
+        dropZone.classList.remove("dragover")
+      );
+
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+        handleFile(e.dataTransfer.files[0]);
+      });
+
+      fileInput.addEventListener("change", (e) =>
+        handleFile(e.target.files[0])
+      );
+
+      function handleFile(file) {
+        if (!file) return;
+        const validExts = ["pdf", "docx"];
+        const ext = file.name.split(".").pop().toLowerCase();
+
+        if (!validExts.includes(ext)) {
+          alert("Only PDF and DOCX files are allowed.");
+          return;
+        }
+
+        selectedFile = file;
+        fileNameDisplay.textContent = file.name;
+        analyzeBtn.disabled = false;
+      }
+
+      analyzeBtn.addEventListener("click", async () => {
+        if (!selectedFile) return;
+
+        analyzeBtn.disabled = true;
+        analyzeBtn.textContent = "Uploading...";
+        statusMsg.textContent = "Uploading file...";
+
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+
+        try {
+          // 1. Upload
+          const uploadResp = await fetch("/files/upload", {
+            method: "POST",
+            body: formData,
+          });
+          if (!uploadResp.ok) throw new Error("Upload failed");
+          const uploadData = await uploadResp.json();
+          const jobId = uploadData.job_id;
+
+          // 2. Parse
+          statusMsg.textContent = "Parsing document...";
+          const parseResp = await fetch(`/process/${jobId}/parse`, {
+            method: "POST",
+          });
+          if (!parseResp.ok) throw new Error("Parsing failed");
+
+          // 3. Index
+          statusMsg.textContent = "Building index...";
+          const indexResp = await fetch(`/rag/${jobId}/index`, {
+            method: "POST",
+          });
+          if (!indexResp.ok) throw new Error("Indexing failed");
+
+          // 4. Analyze (Score) & Save to History
+          statusMsg.textContent = "Analyzing risks...";
+          const analyzeResp = await fetch(
+            `/analyze/${jobId}/clauses?uid=${currentUid}`,
+            { method: "POST" }
+          );
+          if (!analyzeResp.ok) throw new Error("Analysis failed");
+
+          // Success - Redirect
+          window.location.href = `/static/results.html?job_id=${jobId}`;
+        } catch (error) {
+          console.error(error);
+          statusMsg.textContent = "Error: " + error.message;
+          statusMsg.style.color = "var(--error-color)";
+          analyzeBtn.disabled = false;
+          analyzeBtn.textContent = "Analyze Document";
+        }
+      });
+    </script>
+  </body>
+</html>
