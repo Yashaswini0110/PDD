@@ -34,7 +34,7 @@ pipeline {
                         gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
                         gcloud config set project ${PROJECT_ID}
                         gcloud auth configure-docker ${REGION}-docker.pkg.dev -q
-                        docker push ${IMAGE}:${env.BUILD_NUMBER}
+                        docker push ${IMAGE}:${BUILD_NUMBER}
                         docker push ${IMAGE}:latest
                     '''
                 }
@@ -49,7 +49,7 @@ pipeline {
                         gcloud config set project ${PROJECT_ID}
                         gcloud config set run/region ${REGION}
                         gcloud run deploy ${SERVICE_NAME} \
-                          --image ${IMAGE}:${env.BUILD_NUMBER} \
+                          --image ${IMAGE}:${BUILD_NUMBER} \
                           --region ${REGION} \
                           --platform managed \
                           --allow-unauthenticated \
