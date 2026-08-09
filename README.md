@@ -1,4 +1,4 @@
-# ClauseClear – AI-Powered Legal Clause Simplifier
+# DocSense – AI-Powered Legal Clause Simplifier
 
 ## Problem
 
